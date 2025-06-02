@@ -39,7 +39,6 @@ export const verifyOtpValidator=Joi.object({
     "any.required": `OTP is required`,
   }),
 });
-
 export const resetPasswordValidator = Joi.object({
   email: Joi.string().email().required().messages({
     "string.base": `Email should be a type of text`,
