@@ -1,4 +1,5 @@
 import { errorResponse, generateJwtToken, successResponse } from "../helpers/common.helpers.js";
+import { sendEmail } from "../helpers/nodemail.helper.js";
 import ForgotPasswordRequest from "../models/forgotPasswordRequest.model.js";
 import ForgotPassword from "../models/forgotPasswordRequest.model.js";
 import User from "../models/user.model.js";
@@ -73,7 +74,11 @@ export const forgotPassword=async(req,resp)=>{
          });
          await forgotPasswordRequest.save();
       }
-      console.log(alreadyRequested,otp)
+      await sendEmail(
+         user.email,
+         "Password Reset OTP",
+         `Your OTP for password reset is: ${otp}`
+      );
       return successResponse(resp, { success: true, message: "OTP sent to your email" }, 200);
 
    } catch (error) {

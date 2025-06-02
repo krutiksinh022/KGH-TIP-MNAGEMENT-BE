@@ -1,5 +1,5 @@
 import express from "express";
-import { forgotPassword, login, logOut, verifyOtp } from "../controllers/auth.controller.js";
+import { forgotPassword, login, logOut, resetPassword, verifyOtp } from "../controllers/auth.controller.js";
 import { authorize } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
@@ -253,5 +253,66 @@ router.post("/forgot-password",forgotPassword );
  *                     type: string
  *                   example: ["Email and OTP are required"]
  */
-router.post("verify",verifyOtp)
+router.post("/verify",verifyOtp)
+
+/**
+ * @swagger
+ * /auth/reset-password:
+ *   post:
+ *     tags: [Authentication]
+ *     summary: Reset user password
+ *     description: Resets the password for a user identified by email.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - newPassword
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 example: NewPassword@123
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Password reset successfully
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: User not found
+ *       422:
+ *         description: Validation error (missing or invalid fields)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errors:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   example: ["Email and newPassword are required"]
+ */
+router.post("/reset-passWord",resetPassword)
 export default router;
