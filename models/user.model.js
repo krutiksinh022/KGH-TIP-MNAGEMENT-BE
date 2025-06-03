@@ -24,6 +24,10 @@ const userSchema = new mongoose.Schema({
     jwtToken:{
         type: String,
         default: null
+    },
+    isPasswordChange:{
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true }); 
 userSchema.pre('save', async function (next) {
