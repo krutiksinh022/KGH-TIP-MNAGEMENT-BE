@@ -3,6 +3,9 @@ export const USER_TYPES={
     HOTEL_ADMIN:"Hotel Admin",
 }
 
+export const OBJECTID_PATTERN = /^[0-9a-fA-F]{24}$/;
+
+
 export const STATES = {
   AL: "Alabama",
   AK: "Alaska",
