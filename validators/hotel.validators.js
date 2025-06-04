@@ -17,9 +17,14 @@ export const createHotelValidator = Joi.object({
     'string.base': 'City must be a string.',
     'string.empty': 'City is required.'
   }),
-  phoneNumber: Joi.string().required().messages({
-    'string.base': 'Phone number must be a string.',
-    'string.empty': 'Phone number is required.'
+  phoneNumber: Joi.array().items(
+    Joi.string().required().messages({
+      'string.base': 'Phone number must be a string.',
+      'string.empty': 'Phone number cannot be empty.'
+    })
+  ).required().messages({
+    'array.base': 'Phone number must be an array of strings.',
+    'any.required': 'Phone number is required.'
   }),
   admin: Joi.array().items(
     Joi.string().email().required().messages({
