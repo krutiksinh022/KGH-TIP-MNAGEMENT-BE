@@ -1,5 +1,5 @@
 import express from "express";
-import { createHotel, deleteHotel, getHotel, updateHotel } from "../../controllers/superAdmin/hotel.controller.js";
+import { createHotel, deleteHotel, getHotel, getSingleHotelId, updateHotel } from "../../controllers/superAdmin/hotel.controller.js";
 import { authorize } from "../../middleware/auth.middleware.js";
 import { USER_TYPES } from "../../constants/common.constants.js";
 
@@ -301,4 +301,57 @@ router.get("/hotel-management", authorize([USER_TYPES.SUPER_ADMIN]), getHotel)
  */
 
 router.delete("/hotel-management/:hotelId",authorize([USER_TYPES.SUPER_ADMIN]),deleteHotel)
+
+/**
+ * @swagger
+ * /super-admin/hotel-management/{hotelId}:
+ *   get:
+ *     summary: Get details of a specific hotel by ID
+ *     tags: [Super Admin Hotels]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: hotelId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the hotel to retrieve
+ *     responses:
+ *       200:
+ *         description: Hotel retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Hotel fetched successfully
+ *                 data:
+ *                   $ref: '#/components/schemas/Hotel'
+ *       400:
+ *         description: Invalid hotel ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Invalid hotel ID
+ *       404:
+ *         description: Hotel not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Hotel not found
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/hotel-management/:hotelId", authorize([USER_TYPES.SUPER_ADMIN]),getSingleHotelId)
 export default router;

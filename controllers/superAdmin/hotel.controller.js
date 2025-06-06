@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { USER_TYPES } from "../../constants/common.constants.js";
 import {
   errorResponse,
@@ -293,4 +294,78 @@ export const deleteHotel = async (req, res) => {
     }, 500, error.message);
   }
 };
+
+export const getSingleHotelId = async (req, resp) => {
+  try {
+    const { hotelId } = req.params;
+
+    const hotel = await Hotel.aggregate([
+      {
+        $match: { _id: new mongoose.Types.ObjectId(hotelId) },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "admin",
+          foreignField: "_id",
+          as: "adminData",
+        },
+      },
+      {
+        $addFields: {
+  adminEmails: {
+    $reduce: {
+      input: "$adminData",
+      initialValue: [],
+      in: {
+        $concatArrays: [
+          "$$value",
+          {
+            $cond: {
+              if: { $isArray: "$$this.email" },
+              then: "$$this.email",
+              else: [ "$$this.email" ]  // wrap string in array
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+      },
+      {
+        $project: {
+          hotelName: 1,
+          address: 1,
+          state: 1,
+          city: 1,
+          phoneNumber: 1,
+          country: 1,
+          website: 1,
+          admin: "$adminEmails",
+        },
+      },
+    ]);
+
+    if (!hotel || hotel.length === 0) {
+      return errorResponse(resp, {
+        success: false,
+        message: "Hotel not found",
+      }, 404);
+    }
+
+    return successResponse(resp, {
+      success: true,
+      message: "Hotel data fetched successfully",
+      data: hotel[0],
+    }, 200);
+  } catch (error) {
+    console.error(error);
+    return errorResponse(resp, {
+      success: false,
+      message: "Something went wrong",
+    }, 500, error);
+  }
+};
+
 
