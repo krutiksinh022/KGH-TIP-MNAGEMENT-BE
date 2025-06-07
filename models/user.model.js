@@ -5,7 +5,6 @@ import { USER_TYPES } from "../constants/common.constants.js";
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: true,
         trim: true,
     },
     email: {
@@ -17,13 +16,17 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    type: {
+    userType: {
         type: String,
         enum: Object.values(USER_TYPES)
     },
     jwtToken:{
         type: String,
         default: null
+    },
+    isPasswordChange:{
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true }); 
 userSchema.pre('save', async function (next) {

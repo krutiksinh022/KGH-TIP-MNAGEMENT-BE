@@ -7,7 +7,9 @@ dotenv.config();
 export const authorize = (userTypes = []) => {
     return async (req, res, next) => {
         try {
+            
             const token = req.headers.authorization?.split(' ')[1];
+
             if (!token) {
                 return errorResponse(
                     res,
@@ -44,8 +46,7 @@ export const authorize = (userTypes = []) => {
             if (!userTypes || userTypes.length === 0) {
                 return next();
             }
-
-            if (!userTypes.includes(req.userType)) {
+            if (!userTypes.includes(req.user.userType)) {
                 return errorResponse(
                     res,
                     {
