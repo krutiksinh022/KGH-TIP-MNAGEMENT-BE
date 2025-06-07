@@ -14,15 +14,22 @@ export const errorResponse = (res, data, statusCode = 500, error = null) => {
 };
 
 
-export const generateJwtToken=(user,expireTime)=>{
-   
-    const token = jwt.sign(
-        { id: user._id, email: user.email, role: user.type },
-        process.env.JWT_SECRET,
-        { expiresIn: expireTime }
-    );
-    return token;
-}
+export const generateJwtToken = (user, expireTime) => {
+  const options = {};
+  
+  if (expireTime) {
+    options.expiresIn = expireTime; // only add expiresIn if provided
+  }
+
+  const token = jwt.sign(
+    { id: user._id, email: user.email, role: user.type },
+    process.env.JWT_SECRET,
+    options
+  );
+
+  return token;
+};
+
 
 export const generateDefaultPassword = () => {
     const length = 8;

@@ -1,6 +1,7 @@
 export const USER_TYPES={
     SUPER_ADMIN:"Super Admin",
     HOTEL_ADMIN:"Hotel Admin",
+    Staff:"Staff"
 }
 
 export const OBJECTID_PATTERN = /^[0-9a-fA-F]{24}$/;
