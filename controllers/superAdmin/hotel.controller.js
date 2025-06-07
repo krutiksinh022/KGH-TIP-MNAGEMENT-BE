@@ -298,7 +298,6 @@ export const deleteHotel = async (req, res) => {
 export const getSingleHotelId = async (req, resp) => {
   try {
     const { hotelId } = req.params;
-
     const hotel = await Hotel.aggregate([
       {
         $match: { _id: new mongoose.Types.ObjectId(hotelId) },
