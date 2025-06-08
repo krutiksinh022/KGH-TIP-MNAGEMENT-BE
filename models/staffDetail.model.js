@@ -24,5 +24,6 @@ const staffDetailSchema = new mongoose.Schema({
         type: String,
     },
 })
+
 const StaffDetail = mongoose.model("StaffDetail", staffDetailSchema);
 export default StaffDetail;
