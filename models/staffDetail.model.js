@@ -23,6 +23,11 @@ const staffDetailSchema = new mongoose.Schema({
     stripeId: {
         type: String,
     },
+    isStripeConnected:{
+        type:String,
+        require:false,
+        default:false
+    }
 })
 
 const StaffDetail = mongoose.model("StaffDetail", staffDetailSchema);

@@ -144,8 +144,8 @@ export const connectWithStripe = async (req, res) => {
     );
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
-      refresh_url: "https://yourdomain.com/stripe/refresh",
-      return_url: "https://yourdomain.com/dashboard",
+      refresh_url: "http://localhost:5000/refresh",
+      return_url: "http://localhost:5000/dahsboard",
       type: "account_onboarding",
     });
 
@@ -164,7 +164,6 @@ export const connectWithStripe = async (req, res) => {
 
 export const verifyStripe=async(req,res)=>{
     try {
-        console.log(req.user);
         const staff=await StaffDetail.findOne({staffId:req.user._id})
         if(!staff){
             return errorResponse(res,{success:false,message:"staff not found"},402)
@@ -173,7 +172,13 @@ export const verifyStripe=async(req,res)=>{
         const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
         const account=await stripe.accounts.retrieve(staff.stripeId)
-        console.log(account.charges_enabled,account.details_submitted,account.payouts_enabled,"stripe detail")
+       
+        if(!account.charges_enabled || !account.details_submitted || !account.payouts_enabled){
+           return errorResponse(res,{succcess:false,message:"Your account is not connected please connect it"},402)
+        }
+        staff.isStripeConnected=true;
+        await staff.save()
+        return successResponse(res,{success:true,message:"Account connected successfully"},200)
     } catch (error) {
         console.log(error)
         return errorResponse(
