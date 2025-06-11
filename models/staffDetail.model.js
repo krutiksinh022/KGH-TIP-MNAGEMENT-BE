@@ -24,7 +24,7 @@ const staffDetailSchema = new mongoose.Schema({
         type: String,
     },
     isStripeConnected:{
-        type:String,
+        type:Boolean,
         require:false,
         default:false
     }

@@ -2,7 +2,7 @@ import express from "express";
 import authRoutes from "./auth.routes.js"
 import hotelRoutes from "./superAdmin/hotel.routes.js"
 import staffRouter from "./staff/staff.routes.js"
-import hotelRoutes from "./hotelAdmin/hotelEmployee.routes.js"
+import hotelAdminRoutes from "./hotelAdmin/hotelEmployee.routes.js"
 const router = express.Router();
 
 router.use("/auth",authRoutes)
@@ -16,5 +16,5 @@ router.use("/super-admin",hotelRoutes)
 router.use("/staff",staffRouter)
 
 //hotel admin
-router.use("/hotel-admin",hotelRoutes)
+router.use("/hotel-admin",hotelAdminRoutes)
 export default router;

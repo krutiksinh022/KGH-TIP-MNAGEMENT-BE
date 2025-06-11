@@ -3,7 +3,11 @@ export const USER_TYPES={
     HOTEL_ADMIN:"Hotel Admin",
     Staff:"Staff"
 }
-
+export const HOTEL_STAFF_ENROLLMENT={
+  PENDING:"Pending",
+  APPROVE:"Approve",
+  REJECTED:"Rejected"
+}
 export const OBJECTID_PATTERN = /^[0-9a-fA-F]{24}$/;
 
 
