@@ -19,14 +19,14 @@ const hotelStaffEnrollmentSchema = new mongoose.Schema({
   },
   requestedBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User", // assuming admin is also a User
+    ref: "User", 
     required: true,
   },
   createdAt: {
     type: Date,
     default: Date.now,
   },
-});
+},{timestamps:true});
 
 const HotelStaffEnrollment = mongoose.model("HotelStaffEnrollment", hotelStaffEnrollmentSchema);
 export default HotelStaffEnrollment;

@@ -9,8 +9,10 @@ import { forgotPasswordValidator, loginValidator, resetPasswordValidator, verify
 export const login =async(req,resp)=>{
    try {
        const result=await loginValidator.validateAsync(req.body);
-         const {email,password}=result;
-         const user=await User.findOne({email});
+         const { email, password } = result;
+         console.log(email,password)
+      const user = await User.findOne({ email });
+      console.log(user)
          if(!user){
             return errorResponse(resp,{success:false,message:"User not found"},404);
          }

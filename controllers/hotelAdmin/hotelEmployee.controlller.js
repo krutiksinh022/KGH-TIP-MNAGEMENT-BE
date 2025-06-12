@@ -1,8 +1,11 @@
+import { HOTEL_STAFF_ENROLLMENT } from "../../constants/common.constants.js";
 import {
   errorResponse,
   successResponse,
 } from "../../helpers/common.helpers.js";
 import { paginationHelper } from "../../helpers/pagination.helper.js";
+import HotelAdminDetail from "../../models/hotelAdminDetail.modal.js";
+import HotelStaffEnrollment from "../../models/hotelStaffEnrollment.model.js";
 import StaffDetail from "../../models/staffDetail.model.js";
 
 export const getStripeConnectedEmployee = (req, res) => {
@@ -27,9 +30,9 @@ export const getRegisterEmployee = async (req, resp) => {
       sortOrder
     } = paginationHelper(req.query);
 
-    // const matchStage = {
-    //   isStripeConnected: true
-    // };
+    const matchStage = {
+      isStripeConnected: true
+    };
 
     const searchMatch = searchTerm
       ? {
@@ -42,9 +45,9 @@ export const getRegisterEmployee = async (req, resp) => {
       : {};
 
     const Staff = await StaffDetail.aggregate([
-    //   {
-    //     $match: matchStage
-    //   },
+      {
+        $match: matchStage
+      },
       {
         $lookup: {
           from: "users",
@@ -101,3 +104,39 @@ export const getRegisterEmployee = async (req, resp) => {
   }
 };
 
+export const sendOnbordingRequest = async(req,resp) => {
+  try {
+    const { staffId } = req.body
+    const staff = await StaffDetail.findOne({ staffId })
+    const userId = req.user._id;
+      
+
+    if (!staff) {
+       return errorResponse(resp,{success:false,message:"Satff memeber is not found"},401)
+    }
+
+    const hotelAdminDetail = await HotelAdminDetail.findOne({ adminId:userId })
+    if (!hotelAdminDetail) {
+      return errorResponse(resp,{success:false,message:"Hotel not found"},401)
+    }
+    const isAlreadyRequestSent = await HotelStaffEnrollment.findOne({ hotelId: hotelAdminDetail.hotelId, staffId: staff._id })
+    if (!isAlreadyRequestSent) {
+      return errorResponse(resp,{success:false,message:"Already request sent"},401)
+    }
+
+    const sentOnBoardingRequest = new HotelStaffEnrollment({
+      staffId,
+      hotelId: hotelAdminDetail.hotelId,
+      status:HOTEL_STAFF_ENROLLMENT.PENDING,
+      requestedBy:userId
+    })
+
+   const saveOnboardingRequest= await sentOnBoardingRequest.save()
+
+    return successResponse(resp,{success:false,message:"onboarding request sent successfully",data:saveOnboardingRequest},200)
+
+  } catch (error) {
+    console.log(error)
+    return errorResponse(resp,{success:false,message:"something went wrong"},500)
+  }
+}

@@ -1,5 +1,5 @@
 import express from 'express';
-import { getRegisterEmployee } from '../../controllers/hotelAdmin/hotelEmployee.controlller.js';
+import { getRegisterEmployee, sendOnbordingRequest } from '../../controllers/hotelAdmin/hotelEmployee.controlller.js';
 import { authorize } from '../../middleware/auth.middleware.js';
 import { USER_TYPES } from '../../constants/common.constants.js';
 
@@ -94,6 +94,101 @@ const router =express.Router();
  */
 
 
-router.get("/register-employee",authorize([USER_TYPES.HOTEL_ADMIN]),getRegisterEmployee)
+router.get("/register-employee", authorize([USER_TYPES.HOTEL_ADMIN]), getRegisterEmployee)
+
+/**
+ * @swagger
+ * /hotel-admin/send-request:
+ *   post:
+ *     summary: Send request to onboard a hotel staff
+ *     tags: [Hotel Admin Employee Management]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - staffId
+ *             properties:
+ *               staffId:
+ *                 type: string
+ *                 format: objectId
+ *                 example: "60c72b609b1d8e5a2f4d8f1f"
+ *     responses:
+ *       201:
+ *         description: Hotel staff onboarding request created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Hotel staff enrollment request sent successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                       example: "60f7f9f4d72c2b001f0d9b5e"
+ *                     hotelId:
+ *                       type: string
+ *                       example: "60c72b2f9b1d8e5a2f4d8f1e"
+ *                     staffId:
+ *                       type: string
+ *                       example: "60c72b609b1d8e5a2f4d8f1f"
+ *                     requestedBy:
+ *                       type: string
+ *                       example: "60c72b809b1d8e5a2f4d8f20"
+ *                     status:
+ *                       type: string
+ *                       example: "pending"
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2024-06-12T09:25:30.123Z"
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2024-06-12T09:25:30.123Z"
+ *       400:
+ *         description: Bad Request - missing or invalid data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Invalid request data
+ *       401:
+ *         description: Unauthorized - missing or invalid token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized access
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Something went wrong
+ */
+
+router.post("/send-request",authorize([USER_TYPES.HOTEL_ADMIN]),sendOnbordingRequest)
 // router.get("/get-employee",)
 export default router
