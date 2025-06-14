@@ -1,5 +1,7 @@
 import express from 'express';
-import { registerStaff, verifyStaff } from '../../controllers/staff/staffRegistration.controller.js';
+import { connectWithStripe, registerStaff, verifyStaff, verifyStripe } from '../../controllers/staff/staffRegistration.controller.js';
+import { authorize } from '../../middleware/auth.middleware.js';
+import { USER_TYPES } from '../../constants/common.constants.js';
 //import { registerStaff } from '../../controllers/staff/staffRegistration.controller.js';
 
 const router = express.Router();
@@ -85,4 +87,45 @@ router.post("/register",registerStaff)
  */
 router.post("/verify-email",verifyStaff)
 
+/**
+ * @swagger
+ * /staff/stripe-connect:
+ *   post:
+ *     summary: Connect staff to Stripe Express account
+ *     description: Generates a Stripe onboarding link for the staff to complete account setup.
+ *     tags:
+ *       - Staff Stripe
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Stripe onboarding URL created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 url:
+ *                   type: string
+ *                   example: https://connect.stripe.com/setup/s/abc123
+ *       401:
+ *         description: Unauthorized - missing or invalid token
+ *       500:
+ *         description: Server error while creating Stripe account
+ */
+router.post("/stripe-connect",authorize([USER_TYPES.Staff]),connectWithStripe)
+
+/**
+ * @swagger
+ * /staff/stripe-verify:
+ *   get:
+ *     summary: Check if Stripe account is verified
+ *     tags: [Staff Stripe]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Returns whether Stripe account is verified or not
+ */
+router.get("/stripe-verify",authorize(USER_TYPES.Staff),verifyStripe)
 export default router;

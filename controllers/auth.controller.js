@@ -1,3 +1,4 @@
+import { USER_TYPES } from "../constants/common.constants.js";
 import { errorResponse, generateJwtToken, successResponse } from "../helpers/common.helpers.js";
 import { sendEmail } from "../helpers/nodemail.helper.js";
 import ForgotPasswordRequest from "../models/forgotPasswordRequest.model.js";
@@ -8,11 +9,20 @@ import { forgotPasswordValidator, loginValidator, resetPasswordValidator, verify
 export const login =async(req,resp)=>{
    try {
        const result=await loginValidator.validateAsync(req.body);
-         const {email,password}=result;
-         const user=await User.findOne({email});
+         const { email, password } = result;
+         console.log(email,password)
+      const user = await User.findOne({ email });
+      console.log(user)
          if(!user){
             return errorResponse(resp,{success:false,message:"User not found"},404);
          }
+         if(user.userType==USER_TYPES.Staff && !user.isEmailVerified){
+                         return errorResponse(
+                             resp,
+                             { message: 'Email verification is pending please verify it' },
+                             401,
+                         );
+                     }
          const isMatch=await user.isValidPassword(password);
             if(!isMatch){
                 return errorResponse(resp,{success:false,message:"Invalid credentials"},401);

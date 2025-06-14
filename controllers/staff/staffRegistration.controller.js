@@ -9,7 +9,8 @@ import StaffDetail from "../../models/staffDetail.model.js";
 import User from "../../models/user.model.js";
 import { registerStaffValidator } from "../../validators/staff.validators.js";
 import dotenv from "dotenv";
-import jwt from "jsonwebtoken"
+import jwt from "jsonwebtoken";
+import Stripe from "stripe";
 dotenv.config();
 
 export const registerStaff = async (req, res) => {
@@ -29,14 +30,14 @@ export const registerStaff = async (req, res) => {
 
     const newUser = await new User({
       name,
-      email:email.toLowerCase(),
+      email: email.toLowerCase(),
       password,
       userType: USER_TYPES.Staff,
     });
 
     const savedUser = await newUser.save();
     const token = generateJwtToken(savedUser);
-    const verificationLink=`${process.env.FRONT_URL}/verification/${token}`
+    const verificationLink = `${process.env.FRONT_URL}/verification/${token}`;
     const emailBody = `
 Welcome ${savedUser.name},
 
@@ -52,11 +53,7 @@ If you did not request this, please ignore this email.
 Best regards,  
 Hotel Management Team
 `;
-    await sendEmail(
-      savedUser.email,
-      "Regarding Staff verification",
-      emailBody
-    );
+    await sendEmail(savedUser.email, "Regarding Staff verification", emailBody);
     const newStaffDetail = await new StaffDetail({
       staffId: savedUser._id,
       address,
@@ -85,32 +82,36 @@ Hotel Management Team
   }
 };
 
-export const verifyStaff = async(req, res) => {
-    try {
-        const {token}=req.body;
-        const decodeToken=await jwt.verify(token,process.env.JWT_SECRET)
-        console.log(decodeToken)
-       const findUser=await User.findById(decodeToken.id)
-       if(!findUser){
-        return errorResponse(
+export const verifyStaff = async (req, res) => {
+  try {
+    const { token } = req.body;
+    const decodeToken = await jwt.verify(token, process.env.JWT_SECRET);
+    console.log(decodeToken);
+    const findUser = await User.findById(decodeToken.id);
+    if (!findUser) {
+      return errorResponse(
         res,
         { success: false, message: "UnAuthorized or token expired " },
         401
       );
-       }
+    }
 
-       findUser.isEmailVerified=true;
-       await findUser.save()
+    findUser.isEmailVerified = true;
+    await findUser.save();
 
-       return successResponse(res,{success:true,message:"email verified successfully"},200)
-        
-    } catch (error) {
-    if(error.name=="TokenExpiredError"){
-      return errorResponse(
+    return successResponse(
       res,
-      { success: false, message: "Token Expired" },
-      401,
-    );    
+      { success: true, message: "email verified successfully" },
+      200
+    );
+  } catch (error) {
+    console.log(error);
+    if (error.name == "JsonWebTokenError") {
+      return errorResponse(
+        res,
+        { success: false, message: "Invalid toke " },
+        401
+      );
     }
     return errorResponse(
       res,
@@ -118,5 +119,73 @@ export const verifyStaff = async(req, res) => {
       500,
       error.message
     );
-    }
+  }
 };
+
+export const connectWithStripe = async (req, res) => {
+  try {
+    const user = req.user._id;
+    const staffdetail = req.staffDetail;
+    console.log(process.env.STRIPE_SECRET_KEY)
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+    const account = await stripe.accounts.create({
+      type: "express",
+      email: req.user.email,
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true },
+      },
+    });
+    await StaffDetail.findByIdAndUpdate(
+  staffdetail._id, 
+  { $set: { stripeId: account.id } },
+  { new: true } 
+    );
+    const accountLink = await stripe.accountLinks.create({
+      account: account.id,
+      refresh_url: "http://localhost:5000/refresh",
+      return_url: "http://localhost:5000/dahsboard",
+      type: "account_onboarding",
+    });
+
+    res.json({ url: accountLink.url });
+    
+  } catch (error) {
+    console.log(error)
+    return errorResponse(
+      res,
+      { success: false, message: "Something went wrong" },
+      500,
+      error.message
+    );
+  }
+};
+
+export const verifyStripe=async(req,res)=>{
+    try {
+        const staff=await StaffDetail.findOne({staffId:req.user._id})
+        if(!staff){
+            return errorResponse(res,{success:false,message:"staff not found"},402)
+        }
+
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+        const account=await stripe.accounts.retrieve(staff.stripeId)
+       
+        if(!account.charges_enabled || !account.details_submitted || !account.payouts_enabled){
+           return errorResponse(res,{succcess:false,message:"Your account is not connected please connect it"},402)
+        }
+        staff.isStripeConnected=true;
+        await staff.save()
+        return successResponse(res,{success:true,message:"Account connected successfully"},200)
+    } catch (error) {
+        console.log(error)
+        return errorResponse(
+      res,
+      { success: false, message: "Something went wrong" },
+      500,
+      error.message
+    );
+    }
+}
