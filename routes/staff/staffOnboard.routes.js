@@ -1,19 +1,29 @@
-import express from 'express';
-import { responseStaffRequest, StaffOnboardingRequest } from '../../controllers/staff/staffOnbording.controller.js';
-import { authorize } from '../../middleware/auth.middleware.js';
-import { USER_TYPES } from '../../constants/common.constants.js';
+import express from "express";
+import {
+  responseStaffRequest,
+  StaffOnboardingRequest,
+} from "../../controllers/staff/staffOnbording.controller.js";
+import { authorize } from "../../middleware/auth.middleware.js";
+import { USER_TYPES } from "../../constants/common.constants.js";
 const router = express.Router();
 /**
  * @swagger
  * /staff/get-request:
  *   get:
- *     summary: Get all pending enrollment requests for the logged-in staff
+ *     summary: Get enrollment requests for the logged-in staff, optionally filtered by status
  *     tags: [Staff Enrollment Management]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           example: Pending
+ *         description: Optional status to filter enrollment requests (e.g., Pending, Approved, Rejected)
  *     responses:
  *       200:
- *         description: Pending requests retrieved successfully
+ *         description: Enrollment requests retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -22,6 +32,9 @@ const router = express.Router();
  *                 success:
  *                   type: boolean
  *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Pending request fetched successfully
  *                 data:
  *                   type: array
  *                   items:
@@ -36,20 +49,18 @@ const router = express.Router();
  *                       staffId:
  *                         type: string
  *                         example: "60c72b609b1d8e5a2f4d8f1f"
- *                       requestedBy:
- *                         type: string
- *                         example: "60c72b809b1d8e5a2f4d8f20"
  *                       status:
  *                         type: string
  *                         example: "pending"
- *                       createdAt:
+ *                       hotelName:
  *                         type: string
- *                         format: date-time
- *                         example: "2024-06-12T09:25:30.123Z"
- *                       updatedAt:
+ *                         example: "The Grand Hotel"
+ *                       address:
  *                         type: string
- *                         format: date-time
- *                         example: "2024-06-12T09:25:30.123Z"
+ *                         example: "123 Main Street"
+ *                       state:
+ *                         type: string
+ *                         example: "Maharashtra"
  *       401:
  *         description: Unauthorized - missing or invalid token
  *         content:
@@ -72,8 +83,11 @@ const router = express.Router();
  *                   example: Something went wrong
  */
 
-
-router.get("/get-request",authorize([USER_TYPES.Staff]),StaffOnboardingRequest)
+router.get(
+  "/get-request",
+  authorize([USER_TYPES.Staff]),
+  StaffOnboardingRequest
+);
 /**
  * @swagger
  * /staff/approve-request/{requestId}:
@@ -171,5 +185,9 @@ router.get("/get-request",authorize([USER_TYPES.Staff]),StaffOnboardingRequest)
  *                   type: string
  *                   example: Something went wrong
  */
-router.put("/approve-request/:requestId",authorize([USER_TYPES.Staff]),responseStaffRequest);
+router.put(
+  "/approve-request/:requestId",
+  authorize([USER_TYPES.Staff]),
+  responseStaffRequest
+);
 export default router;

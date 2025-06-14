@@ -7,10 +7,10 @@ import { paginationHelper } from "../../helpers/pagination.helper.js";
 import HotelAdminDetail from "../../models/hotelAdminDetail.modal.js";
 import HotelStaffEnrollment from "../../models/hotelStaffEnrollment.model.js";
 import StaffDetail from "../../models/staffDetail.model.js";
+import { StaffOnboardingRequest } from "../staff/staffOnbording.controller.js";
 
 export const getStripeConnectedEmployee = (req, res) => {
   try {
-    
   } catch (error) {
     return errorResponse(
       res,
@@ -22,16 +22,12 @@ export const getStripeConnectedEmployee = (req, res) => {
 
 export const getRegisterEmployee = async (req, resp) => {
   try {
-    const {
-      skip,
-      limit,
-      searchTerm,
-      sortField,
-      sortOrder
-    } = paginationHelper(req.query);
+    const { skip, limit, searchTerm, sortField, sortOrder } = paginationHelper(
+      req.query
+    );
 
     const matchStage = {
-      isStripeConnected: true
+      isStripeConnected: true,
     };
 
     const searchMatch = searchTerm
@@ -40,30 +36,30 @@ export const getRegisterEmployee = async (req, resp) => {
             { "staffDetail.name": { $regex: searchTerm, $options: "i" } },
             { city: { $regex: searchTerm, $options: "i" } },
             { state: { $regex: searchTerm, $options: "i" } },
-          ]
+          ],
         }
       : {};
 
     const Staff = await StaffDetail.aggregate([
       {
-        $match: matchStage
+        $match: matchStage,
       },
       {
         $lookup: {
           from: "users",
           localField: "staffId",
           foreignField: "_id",
-          as: "staffDetail"
-        }
+          as: "staffDetail",
+        },
       },
       {
         $unwind: {
           path: "$staffDetail",
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
-        $match: searchMatch
+        $match: searchMatch,
       },
       {
         $project: {
@@ -73,20 +69,20 @@ export const getRegisterEmployee = async (req, resp) => {
           state: 1,
           isStripeConnected: 1,
           staffName: "$staffDetail.name",
-          createdAt: "$staffDetail.createdAt"
-        }
+          createdAt: "$staffDetail.createdAt",
+        },
       },
       {
         $sort: {
-          [sortField]: sortOrder
-        }
+          [sortField]: sortOrder,
+        },
       },
       {
-        $skip: skip
+        $skip: skip,
       },
       {
-        $limit: limit
-      }
+        $limit: limit,
+      },
     ]);
 
     return successResponse(
@@ -104,39 +100,168 @@ export const getRegisterEmployee = async (req, resp) => {
   }
 };
 
-export const sendOnbordingRequest = async(req,resp) => {
+export const sendOnbordingRequest = async (req, resp) => {
   try {
-    const { staffId } = req.body
-    const staff = await StaffDetail.findOne({ staffId })
+    const { staffId } = req.body;
+    const staff = await StaffDetail.findOne({ staffId });
     const userId = req.user._id;
-      
 
     if (!staff) {
-       return errorResponse(resp,{success:false,message:"Satff memeber is not found"},401)
+      return errorResponse(
+        resp,
+        { success: false, message: "Satff memeber is not found" },
+        401
+      );
     }
 
-    const hotelAdminDetail = await HotelAdminDetail.findOne({ adminId:userId })
+    const hotelAdminDetail = await HotelAdminDetail.findOne({
+      adminId: userId,
+    });
     if (!hotelAdminDetail) {
-      return errorResponse(resp,{success:false,message:"Hotel not found"},401)
+      return errorResponse(
+        resp,
+        { success: false, message: "Hotel not found" },
+        401
+      );
     }
-    const isAlreadyRequestSent = await HotelStaffEnrollment.findOne({ hotelId: hotelAdminDetail.hotelId, staffId: staff._id })
+    const isAlreadyRequestSent = await HotelStaffEnrollment.findOne({
+      hotelId: hotelAdminDetail.hotelId,
+      staffId: staff._id,
+    });
     if (!isAlreadyRequestSent) {
-      return errorResponse(resp,{success:false,message:"Already request sent"},401)
+      return errorResponse(
+        resp,
+        { success: false, message: "Already request sent" },
+        401
+      );
     }
 
     const sentOnBoardingRequest = new HotelStaffEnrollment({
       staffId,
       hotelId: hotelAdminDetail.hotelId,
-      status:HOTEL_STAFF_ENROLLMENT.PENDING,
-      requestedBy:userId
-    })
+      status: HOTEL_STAFF_ENROLLMENT.PENDING,
+      requestedBy: userId,
+    });
 
-   const saveOnboardingRequest= await sentOnBoardingRequest.save()
+    const saveOnboardingRequest = await sentOnBoardingRequest.save();
 
-    return successResponse(resp,{success:false,message:"onboarding request sent successfully",data:saveOnboardingRequest},200)
-
+    return successResponse(
+      resp,
+      {
+        success: false,
+        message: "onboarding request sent successfully",
+        data: saveOnboardingRequest,
+      },
+      200
+    );
   } catch (error) {
-    console.log(error)
-    return errorResponse(resp,{success:false,message:"something went wrong"},500)
+    console.log(error);
+    return errorResponse(
+      resp,
+      { success: false, message: "something went wrong" },
+      500
+    );
   }
-}
+};
+
+export const MyEmployee = async (req, resp) => {
+  try {
+    const hotelId = req.hotel._id;
+    //  console.log(req.hotel)
+    const findMyEmployee = await HotelStaffEnrollment.aggregate([
+      {
+        $match: { hotelId: { $eq: hotelId } },
+      },
+      {
+        $lookup: {
+          from: "users",
+          foreignField: "_id",
+          localField: "staffId",
+          as: "staffDetail",
+        },
+      },
+      {
+        $unwind: {
+          path: "$staffDetail",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          hotelId: 1,
+          staffId: 1,
+          status: 1,
+          staffName: "$staffDetail.name",
+          staffEmail: "$staffDetail.email",
+        },
+      },
+    ]);
+
+    return successResponse(
+      resp,
+      {
+        success: true,
+        message: "hotel fecthed succesfully",
+        data: findMyEmployee,
+      },
+      200
+    );
+  } catch (error) {
+    return errorResponse(
+      resp,
+      { success: false, message: "something went wrong" },
+      500
+    );
+  }
+};
+
+export const requestHistory = async(req,resp) => {
+  try {
+    const hotelId = req.hotel._id;
+    const { status } = req.query;
+    
+   const matchStage={
+      hotelId:{$eq:{hotelId}}
+   }
+    const findStaffDetail = await HotelStaffEnrollment.aggregate([
+      {
+        $match: { hotelId: hotelId },
+      },
+      {
+        $match: { status: status },
+      },
+      {
+        $lookup: {
+          from: "users",
+          foreignField: "_id",
+          localField: "staffId",
+          as: "staffDetail",
+        },
+      },
+      {
+        $unwind: {
+          path: "$staffDetail",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          staffId: 1,
+          hotelId: 1,
+          status: 1,
+          staffName:"$staffDetail.name",
+          staffEmail:"$staffDetail.email"
+        }
+      }
+    ]);
+    return successResponse(resp,{success:true,message:"requestHistory retrivr Successfullly",data:findStaffDetail},200)
+  } catch (error) {
+    return errorResponse(
+      resp,
+      { success: false, message: "something went wrong" },
+      500
+    );
+  }
+};

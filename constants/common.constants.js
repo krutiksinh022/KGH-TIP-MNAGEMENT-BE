@@ -1,15 +1,14 @@
-export const USER_TYPES={
-    SUPER_ADMIN:"Super Admin",
-    HOTEL_ADMIN:"Hotel Admin",
-    Staff:"Staff"
-}
-export const HOTEL_STAFF_ENROLLMENT={
-  PENDING:"Pending",
-  APPROVE:"Approve",
-  REJECTED:"Rejected"
-}
+export const USER_TYPES = {
+  SUPER_ADMIN: "Super Admin",
+  HOTEL_ADMIN: "Hotel Admin",
+  Staff: "Staff",
+};
+export const HOTEL_STAFF_ENROLLMENT = {
+  PENDING: "Pending",
+  APPROVE: "Approved",
+  REJECTED: "Rejected",
+};
 export const OBJECTID_PATTERN = /^[0-9a-fA-F]{24}$/;
-
 
 export const STATES = {
   AL: "Alabama",
@@ -61,5 +60,5 @@ export const STATES = {
   WA: "Washington",
   WV: "West Virginia",
   WI: "Wisconsin",
-  WY: "Wyoming"
+  WY: "Wyoming",
 };

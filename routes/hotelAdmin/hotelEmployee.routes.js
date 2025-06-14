@@ -1,9 +1,14 @@
-import express from 'express';
-import { getRegisterEmployee, sendOnbordingRequest } from '../../controllers/hotelAdmin/hotelEmployee.controlller.js';
-import { authorize } from '../../middleware/auth.middleware.js';
-import { USER_TYPES } from '../../constants/common.constants.js';
+import express from "express";
+import {
+  getRegisterEmployee,
+  MyEmployee,
+  requestHistory,
+  sendOnbordingRequest,
+} from "../../controllers/hotelAdmin/hotelEmployee.controlller.js";
+import { authorize } from "../../middleware/auth.middleware.js";
+import { USER_TYPES } from "../../constants/common.constants.js";
 
-const router =express.Router();
+const router = express.Router();
 /**
  * @swagger
  * /hotel-admin/register-employee:
@@ -93,8 +98,11 @@ const router =express.Router();
  *                   example: Internal Server Error
  */
 
-
-router.get("/register-employee", authorize([USER_TYPES.HOTEL_ADMIN]), getRegisterEmployee)
+router.get(
+  "/register-employee",
+  authorize([USER_TYPES.HOTEL_ADMIN]),
+  getRegisterEmployee
+);
 
 /**
  * @swagger
@@ -189,6 +197,143 @@ router.get("/register-employee", authorize([USER_TYPES.HOTEL_ADMIN]), getRegiste
  *                   example: Something went wrong
  */
 
-router.post("/send-request",authorize([USER_TYPES.HOTEL_ADMIN]),sendOnbordingRequest)
-// router.get("/get-employee",)
-export default router
+router.post(
+  "/send-request",
+  authorize([USER_TYPES.HOTEL_ADMIN]),
+  sendOnbordingRequest
+);
+/**
+ * @swagger
+ * /hotel-admin/my-employee:
+ *   get:
+ *     summary: Get all employees associated with the logged-in hotel admin
+ *     tags: [Hotel Admin Employee Management]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Employees fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Employees fetched successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       employeeName:
+ *                         type: string
+ *                         example: "John Doe"
+ *                       hotelId:
+ *                         type: string
+ *                         example: "60c72b2f9b1d8e5a2f4d8f1e"
+ *                       employeeId:
+ *                         type: string
+ *                         example: "60f7f9f4d72c2b001f0d9b5e"
+ *       401:
+ *         description: Unauthorized - missing or invalid token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized access
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Something went wrong
+ */
+router.get("/my-employee", authorize([USER_TYPES.HOTEL_ADMIN]), MyEmployee);
+
+/**
+ * @swagger
+ * /hotel-admin/request-history:
+ *   get:
+ *     summary: Get staff enrollment request history for the hotel admin
+ *     tags: [Hotel Admin Employee Management]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [Approved, Rejected]
+ *         required: false
+ *         description: Filter results by status (Approved or Rejected)
+ *     responses:
+ *       200:
+ *         description: Request history fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Request history fetched successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       employeeName:
+ *                         type: string
+ *                         example: "Jane Smith"
+ *                       employeeId:
+ *                         type: string
+ *                         example: "60f7f9f4d72c2b001f0d9b5e"
+ *                       hotelId:
+ *                         type: string
+ *                         example: "60c72b2f9b1d8e5a2f4d8f1e"
+ *                       status:
+ *                         type: string
+ *                         example: "Accepted"
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-06-13T10:12:45.000Z"
+ *       401:
+ *         description: Unauthorized - missing or invalid token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Unauthorized access
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Something went wrong
+ */
+
+
+router.get("/request-history",authorize([USER_TYPES.HOTEL_ADMIN]),requestHistory)
+export default router;
