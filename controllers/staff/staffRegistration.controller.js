@@ -37,7 +37,7 @@ export const registerStaff = async (req, res) => {
 
     const savedUser = await newUser.save();
     const token = generateJwtToken(savedUser);
-    const verificationLink = `${process.env.FRONT_URL}/verification/${token}`;
+    const verificationLink = `${process.env.FRONT_URL_USER}/verification/${token}`;
     const emailBody = `
 Welcome ${savedUser.name},
 
@@ -86,7 +86,7 @@ export const verifyStaff = async (req, res) => {
   try {
     const { token } = req.body;
     const decodeToken = await jwt.verify(token, process.env.JWT_SECRET);
-    console.log(decodeToken);
+
     const findUser = await User.findById(decodeToken.id);
     if (!findUser) {
       return errorResponse(
@@ -126,7 +126,7 @@ export const connectWithStripe = async (req, res) => {
   try {
     const user = req.user._id;
     const staffdetail = req.staffDetail;
-    console.log(process.env.STRIPE_SECRET_KEY)
+    console.log(process.env.STRIPE_SECRET_KEY);
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
     const account = await stripe.accounts.create({
@@ -138,9 +138,9 @@ export const connectWithStripe = async (req, res) => {
       },
     });
     await StaffDetail.findByIdAndUpdate(
-  staffdetail._id, 
-  { $set: { stripeId: account.id } },
-  { new: true } 
+      staffdetail._id,
+      { $set: { stripeId: account.id } },
+      { new: true }
     );
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
@@ -150,9 +150,8 @@ export const connectWithStripe = async (req, res) => {
     });
 
     res.json({ url: accountLink.url });
-    
   } catch (error) {
-    console.log(error)
+    console.log(error);
     return errorResponse(
       res,
       { success: false, message: "Something went wrong" },
@@ -162,30 +161,49 @@ export const connectWithStripe = async (req, res) => {
   }
 };
 
-export const verifyStripe=async(req,res)=>{
-    try {
-        const staff=await StaffDetail.findOne({staffId:req.user._id})
-        if(!staff){
-            return errorResponse(res,{success:false,message:"staff not found"},402)
-        }
+export const verifyStripe = async (req, res) => {
+  try {
+    const staff = await StaffDetail.findOne({ staffId: req.user._id });
+    if (!staff) {
+      return errorResponse(
+        res,
+        { success: false, message: "staff not found" },
+        402
+      );
+    }
 
-        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-        const account=await stripe.accounts.retrieve(staff.stripeId)
-       
-        if(!account.charges_enabled || !account.details_submitted || !account.payouts_enabled){
-           return errorResponse(res,{succcess:false,message:"Your account is not connected please connect it"},402)
-        }
-        staff.isStripeConnected=true;
-        await staff.save()
-        return successResponse(res,{success:true,message:"Account connected successfully"},200)
-    } catch (error) {
-        console.log(error)
-        return errorResponse(
+    const account = await stripe.accounts.retrieve(staff.stripeId);
+
+    if (
+      !account.charges_enabled ||
+      !account.details_submitted ||
+      !account.payouts_enabled
+    ) {
+      return errorResponse(
+        res,
+        {
+          succcess: false,
+          message: "Your account is not connected please connect it",
+        },
+        402
+      );
+    }
+    staff.isStripeConnected = true;
+    await staff.save();
+    return successResponse(
+      res,
+      { success: true, message: "Account connected successfully" },
+      200
+    );
+  } catch (error) {
+    console.log(error);
+    return errorResponse(
       res,
       { success: false, message: "Something went wrong" },
       500,
       error.message
     );
-    }
-}
+  }
+};
