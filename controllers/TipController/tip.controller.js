@@ -14,9 +14,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const sendTip = async (req, resp) => {
   try {
-    const { staffId, amount } = await sendTipValidator.validateAsync(req.body);
+    const { staffId, amount, hotelId, ratings, reviews } =
+      await sendTipValidator.validateAsync(req.body);
     const findStaff = await StaffDetail.findOne({ staffId: staffId });
-    console.log(findStaff);
     if (!findStaff) {
       return errorResponse(
         resp,
@@ -30,7 +30,25 @@ export const sendTip = async (req, resp) => {
         { success: false, message: "Employee verification Pending" },
         402
       );
-    }
+      }
+      const HotelDetail = await Hotel.findById(hotelId);
+      if (!HotelDetail) {
+        return errorResponse(
+          resp,
+          {
+            success: false,
+            message: "Hotel Not Found",
+          },
+          402
+        );
+      }
+      if (!findStaff.enrolledHotels.includes(hotelId)) {
+        return errorResponse(resp, {
+          success: false,
+          message: "This staff not enrolled in hotel",
+        });
+      }
+      
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amount * 100,
       currency: "usd",
