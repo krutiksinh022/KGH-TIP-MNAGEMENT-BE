@@ -18,9 +18,9 @@ export const sendTip = async (req, resp) => {
       amount: amount * 100,
       currency: "usd",
       description: `Tip for staff`,
-      payment_method_types: ["card"], // Apple Pay supported via automatic_payment_methods
+      payment_method_types: ["card"], 
       transfer_data: {
-        destination: findStaff.stripeId, // this is the magic part
+        destination: findStaff.stripeId,
       },
     });
     return successResponse(resp,{success:true,message:"Stripe connected successfully",data:paymentIntent.client_secret},200)
