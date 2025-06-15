@@ -1,5 +1,5 @@
 import express from "express"
-import { sendTip } from "../../controllers/TipController/tip.controller.js"
+import { createReviews, sendTip } from "../../controllers/TipController/tip.controller.js"
 
 
 const router = express.Router()
@@ -49,6 +49,8 @@ const router = express.Router()
  *         description: Server error while processing tip
  */
 
-router.post("/send-tip",sendTip)
+router.post("/send-tip", sendTip)
+
+router.post("/review-rating",createReviews);
 
 export default router

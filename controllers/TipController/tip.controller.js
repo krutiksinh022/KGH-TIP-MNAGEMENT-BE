@@ -3,6 +3,7 @@ import { errorResponse, successResponse } from "../../helpers/common.helpers.js"
 import StaffDetail from "../../models/staffDetail.model.js";
 import { sendTipValidator } from "../../validators/tip.validators.js";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
 export const sendTip = async (req, resp) => {
   try {
     const { staffId, amount } = await sendTipValidator.validateAsync(req.body);
@@ -35,3 +36,11 @@ export const sendTip = async (req, resp) => {
     );
   }
 };
+
+export const createReviews = (req,resp) => {
+    try {
+        console.log("reviews")
+    } catch (error) {
+        return errorResponse()
+    }
+}
