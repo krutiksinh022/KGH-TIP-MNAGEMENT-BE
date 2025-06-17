@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import {
   errorResponse,
+  generateJwtToken,
   successResponse,
 } from "../../helpers/common.helpers.js";
 import StaffDetail from "../../models/staffDetail.model.js";
@@ -10,6 +11,7 @@ import {
 } from "../../validators/tip.validators.js";
 import Hotel from "../../models/hotel.model.js";
 import RatingReviews from "../../models/ratingsReview.model.js";
+import jwt from "jsonwebtoken";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const sendTip = async (req, resp) => {
@@ -30,33 +32,43 @@ export const sendTip = async (req, resp) => {
         { success: false, message: "Employee verification Pending" },
         402
       );
-      }
-      const HotelDetail = await Hotel.findById(hotelId);
-      if (!HotelDetail) {
-        return errorResponse(
-          resp,
-          {
-            success: false,
-            message: "Hotel Not Found",
-          },
-          402
-        );
-      }
-      if (!findStaff.enrolledHotels.includes(hotelId)) {
-        return errorResponse(resp, {
+    }
+    const HotelDetail = await Hotel.findById(hotelId);
+    if (!HotelDetail) {
+      return errorResponse(
+        resp,
+        {
           success: false,
-          message: "This staff not enrolled in hotel",
-        });
-      }
-      
+          message: "Hotel Not Found",
+        },
+        402
+      );
+    }
+    if (!findStaff.enrolledHotels.includes(hotelId)) {
+      return errorResponse(resp, {
+        success: false,
+        message: "This staff not enrolled in hotel",
+      });
+    }
+
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amount * 100,
       currency: "usd",
-      description: `Tip for staff`,
+      description: reviews,
       payment_method_types: ["card"],
       transfer_data: {
         destination: findStaff.stripeId,
       },
+    });
+    const payload = {
+      hotelId,
+      staffId,
+      amount,
+      ratings,
+      reviews,
+    };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "20m",
     });
     return successResponse(
       resp,
@@ -64,10 +76,12 @@ export const sendTip = async (req, resp) => {
         success: true,
         message: "Stripe connected successfully",
         data: paymentIntent.client_secret,
+        token,
       },
       200
     );
   } catch (error) {
+    console.log(error);
     return errorResponse(
       resp,
       {
@@ -82,8 +96,12 @@ export const sendTip = async (req, resp) => {
 
 export const createReviews = async (req, resp) => {
   try {
-    const { hotelId, staffId, amount, reviews, ratings } =
-      await reviewRatingValidator.validateAsync(req.body);
+    const { token } = req.body;
+    const { hotelId, staffId, amount, ratings, reviews } = jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    );
+
     const HotelDetail = await Hotel.findById(hotelId);
     if (!HotelDetail) {
       return errorResponse(

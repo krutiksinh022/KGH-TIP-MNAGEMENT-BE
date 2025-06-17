@@ -5,6 +5,8 @@ import staffRouter from "./staff/staff.routes.js"
 import hotelAdminRoutes from "./hotelAdmin/hotelEmployee.routes.js"
 import staffOnBoardingRoutes from "./staff/staffOnboard.routes.js"
 import tipRoutes from "./TipRoute/tip.routes.js"
+import staffTipRoutes from "./staff/staffTip.routes.js"
+import hotelTipRoutes from "./hotelAdmin/hotel.tip.routes.js"
 const router = express.Router();
 
 router.use("/auth",authRoutes)
@@ -16,10 +18,12 @@ router.use("/super-admin",hotelRoutes)
 
 //staff routes
 router.use("/staff", staffRouter)
-router.use("/staff",staffOnBoardingRoutes)
+router.use("/staff", staffOnBoardingRoutes)
+router.use("/staff",staffTipRoutes)
 
 //hotel admin
-router.use("/hotel-admin",hotelAdminRoutes)
+router.use("/hotel-admin", hotelAdminRoutes)
+router.use("/hotel-admin",hotelTipRoutes)
 
 //tip routes
 router.use("/tip-management",tipRoutes);

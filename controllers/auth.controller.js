@@ -53,14 +53,12 @@ export const login = async (req, resp) => {
       email: user.email,
       userType: user.userType,
     };
-    return resp
-      .status(200)
-      .json({
-        success: true,
-        message: "Login successful",
-        token,
-        data: userData,
-      });
+    return resp.status(200).json({
+      success: true,
+      message: "Login successful",
+      token,
+      data: userData,
+    });
   } catch (error) {
     console.log("Error in login controller:", error);
     errorResponse(

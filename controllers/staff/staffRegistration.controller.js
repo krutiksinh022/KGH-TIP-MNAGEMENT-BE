@@ -18,6 +18,7 @@ export const registerStaff = async (req, res) => {
     const result = await registerStaffValidator.validateAsync(req.body);
     const { email, name, mobileNumber, password, city, state, address } =
       result;
+    console.log(process.env);
 
     const findUser = await User.findOne({ email: email.toLowerCase() });
     if (findUser) {
@@ -34,10 +35,10 @@ export const registerStaff = async (req, res) => {
       password,
       userType: USER_TYPES.Staff,
     });
-
+    console.log(process.env);
     const savedUser = await newUser.save();
     const token = generateJwtToken(savedUser);
-    const verificationLink = `${process.env.FRONT_URL_USER}/verification/${token}`;
+    const verificationLink = `localhost:3001/auth/verification/${token}`;
     const emailBody = `
 Welcome ${savedUser.name},
 
@@ -77,7 +78,7 @@ Hotel Management Team
       res,
       { success: false, message: "Something went wrong" },
       500,
-      error.message
+      error
     );
   }
 };
@@ -144,8 +145,8 @@ export const connectWithStripe = async (req, res) => {
     );
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
-      refresh_url: "http://localhost:5000/refresh",
-      return_url: "http://localhost:5000/dahsboard",
+      refresh_url: "http://localhost:3000/dashboard",
+      return_url: "http://localhost:3000/dashboard",
       type: "account_onboarding",
     });
 
@@ -185,7 +186,8 @@ export const verifyStripe = async (req, res) => {
         res,
         {
           succcess: false,
-          message: "Your account is not connected please connect it",
+          message:
+            "Your account is not connected with stripe please connect it",
         },
         402
       );

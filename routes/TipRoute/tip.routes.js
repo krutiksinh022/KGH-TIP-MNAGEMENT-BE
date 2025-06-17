@@ -57,7 +57,7 @@ router.post("/send-tip", sendTip);
  * @swagger
  * /tip-management/review-rating:
  *   post:
- *     summary: Submit a tip with optional review and rating for a staff member
+ *     summary: Submit a tip via token
  *     tags:
  *       - Tip Management
  *     requestBody:
@@ -67,30 +67,12 @@ router.post("/send-tip", sendTip);
  *           schema:
  *             type: object
  *             required:
- *               - hotelId
- *               - staffId
- *               - amount
+ *               - token
  *             properties:
- *               hotelId:
+ *               token:
  *                 type: string
- *                 description: MongoDB ObjectId of the hotel
- *                 example: "60f6c2a4c25e4d001f8f7a92"
- *               staffId:
- *                 type: string
- *                 description: MongoDB ObjectId of the staff
- *                 example: "684afd8ea2b7170f00740481"
- *               amount:
- *                 type: number
- *                 description: Tip amount in USD
- *                 example: 20
- *               reviews:
- *                 type: string
- *                 description: Optional review from the user
- *                 example: "Excellent service and very friendly."
- *               ratings:
- *                 type: number
- *                 description: Rating between 1 and 5
- *                 example: 5
+ *                 description: Secure token containing tip and user details
+ *                 example: "eyJhbGciOiJIUzI1NiIsInR5cCI..."
  *     responses:
  *       200:
  *         description: Review and rating submitted successfully
@@ -105,10 +87,8 @@ router.post("/send-tip", sendTip);
  *                 message:
  *                   type: string
  *                   example: Review submitted successfully
- *                 data:
- *                   $ref: '#/components/schemas/RatingReview'
  *       400:
- *         description: Bad request or missing required fields
+ *         description: Bad request or missing token
  *       500:
  *         description: Internal server error
  */
