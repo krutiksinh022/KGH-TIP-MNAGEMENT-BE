@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { HOTEL_STAFF_ENROLLMENT } from "../../constants/common.constants.js";
 import {
   errorResponse,
@@ -25,7 +26,7 @@ export const getRegisterEmployee = async (req, resp) => {
     const { skip, limit, searchTerm, sortField, sortOrder } = paginationHelper(
       req.query
     );
-
+    console.log("register employe")
     const matchStage = {
       isStripeConnected: true,
     };
@@ -68,6 +69,7 @@ export const getRegisterEmployee = async (req, resp) => {
           city: 1,
           state: 1,
           isStripeConnected: 1,
+          status:1,
           staffName: "$staffDetail.name",
           createdAt: "$staffDetail.createdAt",
         },
@@ -125,10 +127,11 @@ export const sendOnbordingRequest = async (req, resp) => {
       );
     }
     const isAlreadyRequestSent = await HotelStaffEnrollment.findOne({
-      hotelId: hotelAdminDetail.hotelId,
-      staffId: staff._id,
+      hotelId:new mongoose.Types.ObjectId( hotelAdminDetail.hotelId),
+      staffId:new mongoose.Types.ObjectId( staff.staffId),
     });
-    if (!isAlreadyRequestSent) {
+  
+    if (isAlreadyRequestSent) {
       return errorResponse(
         resp,
         { success: false, message: "Already request sent" },
@@ -216,14 +219,14 @@ export const MyEmployee = async (req, resp) => {
   }
 };
 
-export const requestHistory = async(req,resp) => {
+export const requestHistory = async (req, resp) => {
   try {
     const hotelId = req.hotel._id;
     const { status } = req.query;
-    
-   const matchStage={
-      hotelId:{$eq:{hotelId}}
-   }
+
+    const matchStage = {
+      hotelId: { $eq: { hotelId } },
+    };
     const findStaffDetail = await HotelStaffEnrollment.aggregate([
       {
         $match: { hotelId: hotelId },
@@ -251,12 +254,20 @@ export const requestHistory = async(req,resp) => {
           staffId: 1,
           hotelId: 1,
           status: 1,
-          staffName:"$staffDetail.name",
-          staffEmail:"$staffDetail.email"
-        }
-      }
+          staffName: "$staffDetail.name",
+          staffEmail: "$staffDetail.email",
+        },
+      },
     ]);
-    return successResponse(resp,{success:true,message:"requestHistory retrivr Successfullly",data:findStaffDetail},200)
+    return successResponse(
+      resp,
+      {
+        success: true,
+        message: "requestHistory retrivr Successfullly",
+        data: findStaffDetail,
+      },
+      200
+    );
   } catch (error) {
     return errorResponse(
       resp,

@@ -123,15 +123,17 @@ export const createHotel = async (req, res) => {
   }
 };
 
-
-
 export const updateHotel = async (req, res) => {
   try {
     const { hotelId } = req.params;
 
-    const findHotel = await Hotel.findById(hotelId).populate('admin');
+    const findHotel = await Hotel.findById(hotelId).populate("admin");
     if (!findHotel) {
-      return errorResponse(res, { success: false, message: "Hotel Not Found" }, 404);
+      return errorResponse(
+        res,
+        { success: false, message: "Hotel Not Found" },
+        404
+      );
     }
 
     const result = await createHotelValidator.validateAsync(req.body);
@@ -150,7 +152,9 @@ export const updateHotel = async (req, res) => {
 
     const oldAdmins = await User.find({ email: { $in: newAdminEmails } });
     for (const oldAdmin of oldAdmins) {
-      const findAdminHotel = await HotelAdminDetail.findOne({ adminId: oldAdmin._id });
+      const findAdminHotel = await HotelAdminDetail.findOne({
+        adminId: oldAdmin._id,
+      });
 
       if (findAdminHotel && findAdminHotel.hotelId.toString() !== hotelId) {
         return errorResponse(
@@ -164,8 +168,12 @@ export const updateHotel = async (req, res) => {
       }
     }
 
-    const emailsToAdd = newAdminEmails.filter((email) => !oldAdminEmails.includes(email));
-    const emailsToRemove = oldAdminEmails.filter((email) => !newAdminEmails.includes(email));
+    const emailsToAdd = newAdminEmails.filter(
+      (email) => !oldAdminEmails.includes(email)
+    );
+    const emailsToRemove = oldAdminEmails.filter(
+      (email) => !newAdminEmails.includes(email)
+    );
 
     const newAdminIds = [];
 
@@ -239,23 +247,32 @@ export const updateHotel = async (req, res) => {
   }
 };
 
-export const getHotel = async (req,res) => {
+export const getHotel = async (req, res) => {
   try {
-    
-    const Hotels = await Hotel.aggregate(
-      [{
+    const Hotels = await Hotel.aggregate([
+      {
         $project: {
-        hotelName:1,
+          hotelName: 1,
           city: 1,
-        state:1
-      }}]
-    )
-    return successResponse(res,{success:true,message:"Hotel data fetch successfully",data:Hotels},200)
+          state: 1,
+        },
+      },
+    ]);
+    return successResponse(
+      res,
+      { success: true, message: "Hotel data fetch successfully", data: Hotels },
+      200
+    );
   } catch (error) {
     console.log(error);
-    return errorResponse(res,{success:false,message:"Something went wrong"},500,error)
+    return errorResponse(
+      res,
+      { success: false, message: "Something went wrong" },
+      500,
+      error
+    );
   }
-}
+};
 
 export const deleteHotel = async (req, res) => {
   try {
@@ -263,10 +280,14 @@ export const deleteHotel = async (req, res) => {
 
     const findHotel = await Hotel.findById(hotelId);
     if (!findHotel) {
-      return errorResponse(res, {
-        success: false,
-        message: "Invalid Hotel ID. Hotel not found"
-      }, 404);
+      return errorResponse(
+        res,
+        {
+          success: false,
+          message: "Invalid Hotel ID. Hotel not found",
+        },
+        404
+      );
     }
 
     // Get associated admin IDs
@@ -283,15 +304,19 @@ export const deleteHotel = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Hotel and associated admins deleted successfully"
+      message: "Hotel and associated admins deleted successfully",
     });
-
   } catch (error) {
     console.error("Error in deleteHotel:", error);
-    return errorResponse(res, {
-      success: false,
-      message: "Something went wrong while deleting hotel"
-    }, 500, error.message);
+    return errorResponse(
+      res,
+      {
+        success: false,
+        message: "Something went wrong while deleting hotel",
+      },
+      500,
+      error.message
+    );
   }
 };
 
@@ -312,25 +337,25 @@ export const getSingleHotelId = async (req, resp) => {
       },
       {
         $addFields: {
-  adminEmails: {
-    $reduce: {
-      input: "$adminData",
-      initialValue: [],
-      in: {
-        $concatArrays: [
-          "$$value",
-          {
-            $cond: {
-              if: { $isArray: "$$this.email" },
-              then: "$$this.email",
-              else: [ "$$this.email" ]  // wrap string in array
-            }
-          }
-        ]
-      }
-    }
-  }
-}
+          adminEmails: {
+            $reduce: {
+              input: "$adminData",
+              initialValue: [],
+              in: {
+                $concatArrays: [
+                  "$$value",
+                  {
+                    $cond: {
+                      if: { $isArray: "$$this.email" },
+                      then: "$$this.email",
+                      else: ["$$this.email"], // wrap string in array
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
       },
       {
         $project: {
@@ -347,24 +372,35 @@ export const getSingleHotelId = async (req, resp) => {
     ]);
 
     if (!hotel || hotel.length === 0) {
-      return errorResponse(resp, {
-        success: false,
-        message: "Hotel not found",
-      }, 404);
+      return errorResponse(
+        resp,
+        {
+          success: false,
+          message: "Hotel not found",
+        },
+        404
+      );
     }
 
-    return successResponse(resp, {
-      success: true,
-      message: "Hotel data fetched successfully",
-      data: hotel[0],
-    }, 200);
+    return successResponse(
+      resp,
+      {
+        success: true,
+        message: "Hotel data fetched successfully",
+        data: hotel[0],
+      },
+      200
+    );
   } catch (error) {
     console.error(error);
-    return errorResponse(resp, {
-      success: false,
-      message: "Something went wrong",
-    }, 500, error);
+    return errorResponse(
+      resp,
+      {
+        success: false,
+        message: "Something went wrong",
+      },
+      500,
+      error
+    );
   }
 };
-
-
