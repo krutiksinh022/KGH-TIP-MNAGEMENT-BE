@@ -28,6 +28,12 @@ const staffDetailSchema = new mongoose.Schema({
     require: false,
     default: false,
   },
+  departmentIds: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "department",
+    },
+  ],
   enrolledHotels: [
     {
       type: mongoose.Schema.Types.ObjectId,

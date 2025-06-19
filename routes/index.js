@@ -7,6 +7,7 @@ import staffOnBoardingRoutes from "./staff/staffOnboard.routes.js"
 import tipRoutes from "./TipRoute/tip.routes.js"
 import staffTipRoutes from "./staff/staffTip.routes.js"
 import hotelTipRoutes from "./hotelAdmin/hotel.tip.routes.js"
+import hotelDepartmentRoutes from "./hotelAdmin/hotelDepartment.routes.js"
 const router = express.Router();
 
 router.use("/auth",authRoutes)
@@ -24,7 +25,7 @@ router.use("/staff",staffTipRoutes)
 //hotel admin
 router.use("/hotel-admin", hotelAdminRoutes)
 router.use("/hotel-admin",hotelTipRoutes)
-
+router.use("/hotel-admin",hotelDepartmentRoutes)
 //tip routes
 router.use("/tip-management",tipRoutes);
 export default router;
