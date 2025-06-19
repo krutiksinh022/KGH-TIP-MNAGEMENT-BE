@@ -20,7 +20,7 @@ export const login = async (req, resp) => {
     const result = await loginValidator.validateAsync(req.body);
     const { email, password } = result;
     console.log(email, password);
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email:email.toLowerCase() });
     console.log(user);
     if (!user) {
       return errorResponse(
@@ -108,7 +108,7 @@ export const forgotPassword = async (req, resp) => {
   try {
     const result = await forgotPasswordValidator.validateAsync(req.body);
     const { email } = result;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email:email.toLowerCase() });
     if (!user) {
       return errorResponse(
         resp,

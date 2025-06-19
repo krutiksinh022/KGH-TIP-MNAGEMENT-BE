@@ -13,7 +13,11 @@ import { createHotelValidator } from "../../validators/hotel.validators.js";
 
 export const createHotel = async (req, res) => {
   try {
-    const result = await createHotelValidator.validateAsync(req.body);
+    let result = await createHotelValidator.validateAsync(req.body);
+    result = {
+      ...result,
+      admin: result.admin.map((email) => email.toLowerCase()),
+    };
     const {
       hotelName,
       address,
