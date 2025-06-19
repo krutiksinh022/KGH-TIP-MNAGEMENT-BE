@@ -224,9 +224,9 @@ export const requestHistory = async (req, resp) => {
     const hotelId = req.hotel._id;
     const { status } = req.query;
 
-    const matchStage = {
-      hotelId: { $eq: { hotelId } },
-    };
+    // const matchStage = {
+    //   hotelId: { $eq: { hotelId } },
+    // };
     const findStaffDetail = await HotelStaffEnrollment.aggregate([
       {
         $match: { hotelId: hotelId },

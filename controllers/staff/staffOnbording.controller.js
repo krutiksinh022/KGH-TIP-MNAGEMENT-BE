@@ -88,13 +88,14 @@ export const StaffOnboardingRequest = async (req, resp) => {
 export const responseStaffRequest = async (req, resp) => {
   try {
     const { requestId } = req.params;
+    
     const { response } = await requestResponseValidator.validateAsync(req.body);
     const requestDetail = await HotelStaffEnrollment.findById(requestId);
     if (!requestDetail) {
       return errorResponse(resp, {
         success: false,
         message: "Request not found",
-      });
+      },401);
     }
     // if (requestDetail.status !== HOTEL_STAFF_ENROLLMENT.PENDING) {
     //   return errorResponse(
@@ -126,6 +127,7 @@ export const responseStaffRequest = async (req, resp) => {
       200
     );
   } catch (error) {
+    console.log(error)
     return errorResponse(
       resp,
       { success: false, message: "Something went wrong" },
