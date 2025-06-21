@@ -5,6 +5,8 @@ import {
 import { createDepartmentValidator } from "../../validators/department.validators.js";
 import Department from "../../models/department.model.js";
 import StaffDetail from "../../models/staffDetail.model.js";
+import Hotel from "../../models/hotel.model.js";
+import mongoose from "mongoose";
 
 export const createDepartment = async (req, resp) => {
   try {
@@ -14,10 +16,37 @@ export const createDepartment = async (req, resp) => {
 
     const hotel = req.hotel; // Assuming middleware adds authenticated hotel data
     const hotelId = hotel._id;
+    const hotelExist = await Hotel.findById(hotelId).lean();
+    if (!hotelExist) {
+      return errorResponse(
+        resp,
+        {
+          success: false,
+          message: "Hotel not found.",
+        },
+        404
+      );
+    }
+
+    const enrolledStaffIds = hotel.staff.map((id) => id.toString());
+    const notEnrolledStaff = staff.filter(
+      (id) => !enrolledStaffIds.includes(id)
+    );
+
+    if (notEnrolledStaff.length > 0) {
+      return errorResponse(
+        resp,
+        {
+          success: false,
+          message: "Some staff members are not enrolled in the hotel.",
+        },
+        400
+      );
+    }
 
     // 2. Check if department with same name already exists in the same hotel
     const existingDepartment = await Department.findOne({
-     departmentName,
+      departmentName,
       hotelId,
     });
 
@@ -46,7 +75,7 @@ export const createDepartment = async (req, resp) => {
         {
           success: false,
           message: `These staff members either don't exist or are not connected to Stripe.`,
-        //   invalidStaff: missingStaff,
+          //   invalidStaff: missingStaff,
         },
         404
       );
@@ -66,8 +95,8 @@ export const createDepartment = async (req, resp) => {
           { $addToSet: { departmentIds: savedDepartment._id } } // avoid duplicates
         );
       })
-      );
-      
+    );
+
     return successResponse(
       resp,
       {
@@ -88,14 +117,23 @@ export const createDepartment = async (req, resp) => {
   }
 };
 
-
 export const updateDepartment = async (req, resp) => {
   try {
     const { departmentId } = req.params;
     const { departmentName, staff } =
       await createDepartmentValidator.validateAsync(req.body);
     const hotelId = req.hotel._id;
-
+    const hotelExist = await Hotel.findById(hotelId).lean();
+    if (!hotelExist) {
+      return errorResponse(
+        resp,
+        {
+          success: false,
+          message: "Hotel not found.",
+        },
+        404
+      );
+    }
     const department = await Department.findOne({ _id: departmentId, hotelId });
     if (!department) {
       return errorResponse(
@@ -108,7 +146,22 @@ export const updateDepartment = async (req, resp) => {
       );
     }
 
-    // Check for duplicate department name (except itself)
+    const enrolledStaffIds = hotelExist.staff.map((id) => id.toString());
+    const notEnrolledStaff = staff.filter(
+      (id) => !enrolledStaffIds.includes(id)
+    );
+
+    if (notEnrolledStaff.length > 0) {
+      return errorResponse(
+        resp,
+        {
+          success: false,
+          message: "Some staff members are not enrolled in the hotel.",
+        },
+        400
+      );
+    }
+
     const existingDepartment = await Department.findOne({
       departmentName,
       hotelId,
@@ -194,3 +247,98 @@ export const updateDepartment = async (req, resp) => {
     );
   }
 };
+
+export const getDepartmentDetail = async (req, resp) => {
+  try {
+    const hotelId = req.hotel._id;
+
+    const hotelExist = await Hotel.findById(hotelId).lean();
+    if (!hotelExist) {
+      return errorResponse(
+        resp,
+        {
+          success: false,
+          message: "Hotel not found.",
+        },
+        404
+      );
+    }
+
+    const myDepartments = await Department.aggregate([
+      {
+        $match: { hotelId: new mongoose.Types.ObjectId(hotelId) }, // Ensure ObjectId
+      },
+      {
+        $project: {
+          departmentName: 1,
+          employeesCount: { $size: "$staffMembers" },
+        },
+      },
+    ]);
+
+    return successResponse(
+      resp,
+      {
+        success: true,
+        message: "Department fetched successfully",
+        data: myDepartments,
+      },
+      200
+    );
+  } catch (error) {
+    console.log(error);
+    return errorResponse(
+      resp,
+      { success: false, message: "Something went wrong" },
+      500,
+      error
+    );
+  }
+};
+
+
+export const getSingleDepartment = async (req, resp) => {
+  try {
+    const { departmentId } = req.params;
+
+    const departmentDetail = await Department.aggregate([
+      {
+        $match: { _id: new mongoose.Types.ObjectId(departmentId) },
+      },
+      {
+        $lookup: {
+          from: "users", // MongoDB collection name (usually lowercase plural of model name)
+          localField: "staffMembers",
+          foreignField: "_id",
+          as: "staffDetails",
+        },
+      },
+      {
+        $project: {
+          departmentName: 1,
+          hotelId: 1,
+          staffEmails: "$staffDetails.email", // return only email from joined users
+        },
+      },
+    ]);
+
+    return successResponse(
+      resp,
+      {
+        success: true,
+        message: "Department detail fetched",
+        data: departmentDetail[0] || {},
+      },
+      200
+    );
+  } catch (error) {
+    console.log(error);
+    return errorResponse(
+      resp,
+      { success: false, message: "Something went wrong" },
+      500,
+      error
+    );
+  }
+};
+
