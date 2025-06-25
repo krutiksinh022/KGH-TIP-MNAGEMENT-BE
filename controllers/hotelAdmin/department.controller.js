@@ -296,7 +296,6 @@ export const getDepartmentDetail = async (req, resp) => {
   }
 };
 
-
 export const getSingleDepartment = async (req, resp) => {
   try {
     const { departmentId } = req.params;
@@ -341,4 +340,3 @@ export const getSingleDepartment = async (req, resp) => {
     );
   }
 };
-

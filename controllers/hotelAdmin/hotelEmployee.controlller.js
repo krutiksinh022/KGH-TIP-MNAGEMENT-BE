@@ -151,7 +151,7 @@ export const sendOnbordingRequest = async (req, resp) => {
     return successResponse(
       resp,
       {
-        success: false,
+        success: true,
         message: "onboarding request sent successfully",
         data: saveOnboardingRequest,
       },

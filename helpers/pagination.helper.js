@@ -5,7 +5,6 @@ export const paginationHelper = (query) => {
     const searchTerm = query.searchTerm || null;
     const sortField = query.sortField || 'createdAt';
     const sortOrder = query.sortOrder == 1 ? 1 : -1;
-
     return {
         page,
         limit,

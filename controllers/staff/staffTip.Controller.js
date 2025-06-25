@@ -7,7 +7,7 @@ import RatingReviews from "../../models/ratingsReview.model.js";
 export const getStaffTip = async (req, resp) => {
   try {
     const user = req.user;
-    console.log(user);
+    
     const tipDetail = await RatingReviews.aggregate([
       {
         $match: { stafId: { $eq: user.staffId } },

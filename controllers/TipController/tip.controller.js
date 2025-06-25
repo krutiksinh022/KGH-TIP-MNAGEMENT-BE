@@ -16,7 +16,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const sendTip = async (req, resp) => {
   try {
-    const { staffId, amount, hotelId, ratings, reviews } =
+    const { staffId, amount, hotelId, ratings, reviews, roomNo, guestName } =
       await sendTipValidator.validateAsync(req.body);
     const findStaff = await StaffDetail.findOne({ staffId: staffId });
     if (!findStaff) {
@@ -66,6 +66,8 @@ export const sendTip = async (req, resp) => {
       amount,
       ratings,
       reviews,
+      roomNo,
+      guestName,
     };
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: "20m",
@@ -97,10 +99,8 @@ export const sendTip = async (req, resp) => {
 export const createReviews = async (req, resp) => {
   try {
     const { token } = req.body;
-    const { hotelId, staffId, amount, ratings, reviews } = jwt.verify(
-      token,
-      process.env.JWT_SECRET
-    );
+    const { hotelId, staffId, amount, ratings, reviews, roomNo, guestName } =
+      jwt.verify(token, process.env.JWT_SECRET);
 
     const HotelDetail = await Hotel.findById(hotelId);
     if (!HotelDetail) {
@@ -139,6 +139,8 @@ export const createReviews = async (req, resp) => {
       amount,
       reviews,
       ratings,
+      roomNo,
+      guestName,
     });
 
     await newReviews.save();

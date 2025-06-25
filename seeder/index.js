@@ -16,21 +16,27 @@ const connectDB = async () => {
   }
 }
 
-export const seedUser=async()=>{
-    try {
-        for(const user of userData){
-            const existingUser=await User.findOne({email:user.email})
-            if(!existingUser){
-                const newUser=await User.create(user)
-                console.log("User created : ",newUser.email)
-            }else{
-                console.log("User already exists : ",existingUser.email)
-            }
-        }
-    } catch (error) {
-        console.error("Error seeding data:", error);
+export const seedUser = async () => {
+  try {
+    for (const user of userData) {
+      const email = user.email.toLowerCase(); // Ensure lowercase for comparison and saving
+      const existingUser = await User.findOne({ email });
+
+      if (!existingUser) {
+        const newUser = await User.create({
+          ...user,
+          email, // Save email in lowercase
+        });
+        console.log("User created:", newUser.email);
+      } else {
+        console.log("User already exists:", existingUser.email);
+      }
     }
-}
+  } catch (error) {
+    console.error("Error seeding data:", error);
+  }
+};
+
 
 
 const seedData=async()=>{

@@ -22,6 +22,12 @@ const ratingReviewsSchema = new mongoose.Schema(
     ratings: {
       type: Number,
     },
+    roomNo: {
+      type: String,
+    },
+    guestName: {
+      type: String,
+    },
   },
   { timestamps: true }
 );

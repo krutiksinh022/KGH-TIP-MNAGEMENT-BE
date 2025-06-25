@@ -23,8 +23,10 @@ export const sendTipValidator = Joi.object({
     "number.max": "Ratings cannot be greater than 5",
     "number.min": "Ratings must be at least 1",
   }),
-});
+  roomNo: Joi.string().optional(),
 
+  guestName: Joi.string().optional(),
+});
 
 export const reviewRatingValidator = Joi.object({
   hotelId: Joi.string().length(24).hex().required().messages({
