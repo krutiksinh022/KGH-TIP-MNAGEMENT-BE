@@ -9,6 +9,7 @@ import ForgotPasswordRequest from "../models/forgotPasswordRequest.model.js";
 import ForgotPassword from "../models/forgotPasswordRequest.model.js";
 import User from "../models/user.model.js";
 import {
+  changePasswordValidator,
   forgotPasswordValidator,
   loginValidator,
   resetPasswordValidator,
@@ -20,7 +21,7 @@ export const login = async (req, resp) => {
     const result = await loginValidator.validateAsync(req.body);
     const { email, password } = result;
     console.log(email, password);
-    const user = await User.findOne({ email:email.toLowerCase() });
+    const user = await User.findOne({ email: email.toLowerCase() });
     console.log(user);
     if (!user) {
       return errorResponse(
@@ -108,7 +109,7 @@ export const forgotPassword = async (req, resp) => {
   try {
     const result = await forgotPasswordValidator.validateAsync(req.body);
     const { email } = result;
-    const user = await User.findOne({ email:email.toLowerCase() });
+    const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       return errorResponse(
         resp,
@@ -241,6 +242,41 @@ export const resetPassword = async (req, rep) => {
       { success: false, message: "Internal Server Error" },
       500,
       error.message
+    );
+  }
+};
+
+export const changePassword = async (req, resp) => {
+  try {
+    const user = req.user;
+    const { newPassword } = await changePasswordValidator.validateAsync(
+      req.body
+    );
+    const findUser = await User.findById(user._id);
+    if (!findUser) {
+      return errorResponse(
+        resp,
+        { success: false, message: "User not found" },
+        200
+      );
+    }
+    findUser.password = newPassword;
+    await findUser.save()
+    return successResponse(
+      resp,
+      { success: true, message: "Password Updated Successfully !" },
+      200
+    );
+  } catch (error) {
+    console.log(error)
+    return errorResponse(
+      resp,
+      {
+        success: "false",
+        message: "something went wrong",
+      },
+      500,
+      error
     );
   }
 };

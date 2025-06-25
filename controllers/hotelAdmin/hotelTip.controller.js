@@ -1,11 +1,14 @@
-import { errorResponse, successResponse } from "../../helpers/common.helpers.js";
+import {
+  errorResponse,
+  successResponse,
+} from "../../helpers/common.helpers.js";
 import RatingReviews from "../../models/ratingsReview.model.js";
 
-export const HotelEmployeeTip = async(req, resp) => {
-    try {
-        const user = req.user;
-        const hotelDetail=req.hotel
-        console.log(req.hotel)
+export const HotelEmployeeTip = async (req, resp) => {
+  try {
+    const user = req.user;
+    const hotelDetail = req.hotel;
+    console.log(req.hotel);
     console.log(user);
     const tipDetail = await RatingReviews.aggregate([
       {
@@ -45,8 +48,8 @@ export const HotelEmployeeTip = async(req, resp) => {
       },
       200
     );
-    } catch (error) {
-        console.log(error)
+  } catch (error) {
+    console.log(error);
     return errorResponse(
       resp,
       {

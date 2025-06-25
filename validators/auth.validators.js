@@ -24,8 +24,7 @@ export const forgotPasswordValidator = Joi.object({
   }),
 });
 
-
-export const verifyOtpValidator=Joi.object({
+export const verifyOtpValidator = Joi.object({
   email: Joi.string().email().required().messages({
     "string.base": `Email should be a type of text`,
     "string.email": `Email must be a valid email`,
@@ -46,6 +45,15 @@ export const resetPasswordValidator = Joi.object({
     "string.empty": `Email cannot be empty`,
     "any.required": `Email is required`,
   }),
+  newPassword: Joi.string().min(6).required().messages({
+    "string.base": `New Password should be a type of text`,
+    "string.empty": `New Password cannot be empty`,
+    "string.min": `New Password should be at least 6 characters long`,
+    "any.required": `New Password is required`,
+  }),
+});
+
+export const changePasswordValidator = Joi.object({
   newPassword: Joi.string().min(6).required().messages({
     "string.base": `New Password should be a type of text`,
     "string.empty": `New Password cannot be empty`,
