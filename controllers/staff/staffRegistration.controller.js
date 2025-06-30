@@ -127,16 +127,19 @@ export const connectWithStripe = async (req, res) => {
   try {
     const user = req.user._id;
     const staffdetail = req.staffDetail;
-    console.log(process.env.STRIPE_SECRET_KEY);
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
     const account = await stripe.accounts.create({
       type: "express",
       email: req.user.email,
+      business_type:"individual",
       capabilities: {
         card_payments: { requested: true },
         transfers: { requested: true },
       },
+      individual: {
+        first_name:req.user.name
+      }
     });
     await StaffDetail.findByIdAndUpdate(
       staffdetail._id,

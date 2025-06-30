@@ -26,9 +26,22 @@ export const getRegisterEmployee = async (req, resp) => {
     const { skip, limit, searchTerm, sortField, sortOrder } = paginationHelper(
       req.query
     );
-    console.log("register employe")
+
+    const hotelId = req.query.hotelId || req.hotel?._id;
+    if (!hotelId) {
+      return errorResponse(
+        resp,
+        {
+          success: false,
+          message: "Hotel ID is required",
+        },
+        400
+      );
+    }
+
     const matchStage = {
       isStripeConnected: true,
+      enrolledHotels: { $ne: new mongoose.Types.ObjectId(hotelId) },
     };
 
     const searchMatch = searchTerm
@@ -69,7 +82,7 @@ export const getRegisterEmployee = async (req, resp) => {
           city: 1,
           state: 1,
           isStripeConnected: 1,
-          status:1,
+          status: 1,
           staffName: "$staffDetail.name",
           createdAt: "$staffDetail.createdAt",
         },
@@ -89,14 +102,21 @@ export const getRegisterEmployee = async (req, resp) => {
 
     return successResponse(
       resp,
-      { success: true, message: "Staff fetched successfully", data: Staff },
+      {
+        success: true,
+        message: "Register employee fetched  fetched successfully",
+        data: Staff,
+      },
       200
     );
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return errorResponse(
       resp,
-      { success: false, message: "Something went wrong" },
+      {
+        success: false,
+        message: "Something went wrong",
+      },
       500
     );
   }
@@ -127,10 +147,10 @@ export const sendOnbordingRequest = async (req, resp) => {
       );
     }
     const isAlreadyRequestSent = await HotelStaffEnrollment.findOne({
-      hotelId:new mongoose.Types.ObjectId( hotelAdminDetail.hotelId),
-      staffId:new mongoose.Types.ObjectId( staff.staffId),
+      hotelId: new mongoose.Types.ObjectId(hotelAdminDetail.hotelId),
+      staffId: new mongoose.Types.ObjectId(staff.staffId),
     });
-  
+
     if (isAlreadyRequestSent) {
       return errorResponse(
         resp,
@@ -170,10 +190,13 @@ export const sendOnbordingRequest = async (req, resp) => {
 export const MyEmployee = async (req, resp) => {
   try {
     const hotelId = req.hotel._id;
-    //  console.log(req.hotel)
+
     const findMyEmployee = await HotelStaffEnrollment.aggregate([
       {
-        $match: { hotelId: { $eq: hotelId } },
+        $match: {
+          hotelId: hotelId, // ✅ Match by hotelId
+          status: HOTEL_STAFF_ENROLLMENT.APPROVE, // ✅ Match only approved staff
+        },
       },
       {
         $lookup: {
@@ -205,7 +228,7 @@ export const MyEmployee = async (req, resp) => {
       resp,
       {
         success: true,
-        message: "hotel fecthed succesfully",
+        message: "Approved employees fetched successfully",
         data: findMyEmployee,
       },
       200
@@ -213,11 +236,12 @@ export const MyEmployee = async (req, resp) => {
   } catch (error) {
     return errorResponse(
       resp,
-      { success: false, message: "something went wrong" },
+      { success: false, message: "Something went wrong" },
       500
     );
   }
 };
+
 
 export const requestHistory = async (req, resp) => {
   try {

@@ -71,7 +71,7 @@ export const StaffOnboardingRequest = async (req, resp) => {
       resp,
       {
         success: true,
-        message: "Pending request fetch successFully",
+        message: `${statusQuery||"All"} request fetch successFully`,
         data: pendingRequest,
       },
       200

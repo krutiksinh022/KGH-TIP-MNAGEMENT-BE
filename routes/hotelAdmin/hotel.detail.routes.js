@@ -5,7 +5,7 @@ import { getMyHotelDetail } from "../../controllers/hotelAdmin/hotelDetail.contr
 const router = express.Router();
 /**
  * @swagger
- * /hotel/details:
+ * /hotel-admin/my-hotel:
  *   get:
  *     tags: [Hotel Admin, HotelDetail]
  *     summary: Get hotel details

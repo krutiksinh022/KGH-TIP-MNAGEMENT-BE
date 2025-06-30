@@ -7,6 +7,7 @@ import {
 import { sendEmail } from "../helpers/nodemail.helper.js";
 import ForgotPasswordRequest from "../models/forgotPasswordRequest.model.js";
 import ForgotPassword from "../models/forgotPasswordRequest.model.js";
+import Hotel from "../models/hotel.model.js";
 import User from "../models/user.model.js";
 import {
   changePasswordValidator,
@@ -54,6 +55,12 @@ export const login = async (req, resp) => {
       email: user.email,
       userType: user.userType,
     };
+
+    if (userData.userType == USER_TYPES.HOTEL_ADMIN) {
+      const adminHotel = await Hotel.findOne({ admin: user._id });
+      
+      userData.hotelId = adminHotel._id;
+    }
     return resp.status(200).json({
       success: true,
       message: "Login successful",
@@ -261,14 +268,14 @@ export const changePassword = async (req, resp) => {
       );
     }
     findUser.password = newPassword;
-    await findUser.save()
+    await findUser.save();
     return successResponse(
       resp,
       { success: true, message: "Password Updated Successfully !" },
       200
     );
   } catch (error) {
-    console.log(error)
+    console.log(error);
     return errorResponse(
       resp,
       {

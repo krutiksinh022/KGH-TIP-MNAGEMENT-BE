@@ -101,7 +101,7 @@ export const createReviews = async (req, resp) => {
     const { token } = req.body;
     const { hotelId, staffId, amount, ratings, reviews, roomNo, guestName } =
       jwt.verify(token, process.env.JWT_SECRET);
-
+    console.log(hotelId, staffId, amount, ratings, reviews, roomNo, guestName);
     const HotelDetail = await Hotel.findById(hotelId);
     if (!HotelDetail) {
       return errorResponse(
