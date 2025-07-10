@@ -274,7 +274,7 @@ router.get("/my-employee", authorize([USER_TYPES.HOTEL_ADMIN]), MyEmployee);
  *         name: status
  *         schema:
  *           type: string
- *           enum: [Approved, Rejected]
+ *           enum: [Approved, Rejected,Pending]
  *         required: false
  *         description: Filter results by status (Approved or Rejected)
  *     responses:

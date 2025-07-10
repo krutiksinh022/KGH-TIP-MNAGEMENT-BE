@@ -1,3 +1,4 @@
+import mongoose, { mongo } from "mongoose";
 import {
   errorResponse,
   successResponse,
@@ -7,10 +8,10 @@ import RatingReviews from "../../models/ratingsReview.model.js";
 export const getStaffTip = async (req, resp) => {
   try {
     const user = req.user;
-    
+    console.log(user._id);
     const tipDetail = await RatingReviews.aggregate([
       {
-        $match: { stafId: { $eq: user.staffId } },
+        $match: { staffId: new mongoose.Types.ObjectId(user._id) },
       },
       {
         $lookup: {
@@ -27,13 +28,13 @@ export const getStaffTip = async (req, resp) => {
         },
       },
       {
-          $project: {
-              _id: 1,
-              hotelId: 1,
-              amount: 1,
-              reviews: 1,
-              ratings: 1,
-              hotelName:"$hotelDetail.hotelName",
+        $project: {
+          _id: 1,
+          hotelId: 1,
+          amount: 1,
+          reviews: 1,
+          ratings: 1,
+          hotelName: "$hotelDetail.hotelName",
         },
       },
     ]);
@@ -50,4 +51,3 @@ export const getStaffTip = async (req, resp) => {
     return errorResponse();
   }
 };
-
