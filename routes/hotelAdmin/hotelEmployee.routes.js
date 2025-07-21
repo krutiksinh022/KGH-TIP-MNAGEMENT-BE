@@ -274,9 +274,30 @@ router.get("/my-employee", authorize([USER_TYPES.HOTEL_ADMIN]), MyEmployee);
  *         name: status
  *         schema:
  *           type: string
- *           enum: [Approved, Rejected,Pending]
+ *           enum: [Approved, Rejected, Pending]
  *         required: false
- *         description: Filter results by status (Approved or Rejected)
+ *         description: Filter results by status (Approved, Rejected, or Pending)
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         required: false
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           example: 10
+ *         required: false
+ *         description: Number of records per page
+ *       - in: query
+ *         name: searchTerm
+ *         schema:
+ *           type: string
+ *           example: Jane
+ *         required: false
+ *         description: Search by employee name or ID
  *     responses:
  *       200:
  *         description: Request history fetched successfully
@@ -333,7 +354,6 @@ router.get("/my-employee", authorize([USER_TYPES.HOTEL_ADMIN]), MyEmployee);
  *                   type: string
  *                   example: Something went wrong
  */
-
 
 router.get("/request-history",authorize([USER_TYPES.HOTEL_ADMIN]),requestHistory)
 export default router;

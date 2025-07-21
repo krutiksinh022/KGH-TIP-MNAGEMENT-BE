@@ -87,11 +87,11 @@ export const getRegisterEmployee = async (req, resp) => {
           createdAt: "$staffDetail.createdAt",
         },
       },
-      {
-        $sort: {
-          [sortField]: sortOrder,
-        },
-      },
+      // {
+      //   $sort: {
+      //     [sortField]: sortOrder,
+      //   },
+      // },
       {
         $skip: skip,
       },
@@ -242,22 +242,32 @@ export const MyEmployee = async (req, resp) => {
   }
 };
 
-
 export const requestHistory = async (req, resp) => {
   try {
     const hotelId = req.hotel._id;
     const { status } = req.query;
+    const { page, limit, skip, searchTerm } = paginationHelper(req.query);
 
-    // const matchStage = {
-    //   hotelId: { $eq: { hotelId } },
-    // };
-    const findStaffDetail = await HotelStaffEnrollment.aggregate([
-      {
-        $match: { hotelId: hotelId },
-      },
-      {
-        $match: { status: status },
-      },
+    const matchStage = {
+      hotelId,
+    };
+
+    if (status) {
+      matchStage.status = status;
+    }
+
+    const searchStage = searchTerm
+      ? {
+          $or: [
+            { "staffDetail.name": { $regex: searchTerm, $options: "i" } },
+            { "staffDetail.email": { $regex: searchTerm, $options: "i" } },
+          ],
+        }
+      : {};
+
+    // Main aggregation pipeline with pagination
+    const aggregationPipeline = [
+      { $match: matchStage },
       {
         $lookup: {
           from: "users",
@@ -273,30 +283,70 @@ export const requestHistory = async (req, resp) => {
         },
       },
       {
+        $match: searchStage,
+      },
+      {
         $project: {
           _id: 1,
           staffId: 1,
           hotelId: 1,
           status: 1,
+          updatedAt: 1,
           staffName: "$staffDetail.name",
           staffEmail: "$staffDetail.email",
         },
       },
+      { $sort: { updatedAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+    ];
+
+    // Count pipeline (same as above without skip and limit)
+    const countPipeline = [
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: "users",
+          foreignField: "_id",
+          localField: "staffId",
+          as: "staffDetail",
+        },
+      },
+      { $unwind: { path: "$staffDetail", preserveNullAndEmptyArrays: true } },
+      { $match: searchStage },
+      { $count: "totalCount" },
+    ];
+
+    const [data, countResult] = await Promise.all([
+      HotelStaffEnrollment.aggregate(aggregationPipeline),
+      HotelStaffEnrollment.aggregate(countPipeline),
     ]);
+
+    const totalCount = countResult[0]?.totalCount || 0;
+    const totalPages = Math.ceil(totalCount / limit);
+
     return successResponse(
       resp,
       {
         success: true,
-        message: "requestHistory retrivr Successfullly",
-        data: findStaffDetail,
+        message: "Request history retrieved successfully",
+        data,
+        meta: {
+          page,
+          limit,
+          totalCount,
+          totalPages,
+        },
       },
       200
     );
   } catch (error) {
+    console.error(error);
     return errorResponse(
       resp,
-      { success: false, message: "something went wrong" },
+      { success: false, message: "Something went wrong" },
       500
     );
   }
 };
+

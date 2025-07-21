@@ -14,6 +14,25 @@ const router = express.Router();
  *       - Hotel Admin Tip Management
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           example: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           example: 10
+ *         description: Number of records per page
+ *       - in: query
+ *         name: searchTerm
+ *         schema:
+ *           type: string
+ *           example: John
+ *         description: Search by staff name or review
  *     responses:
  *       200:
  *         description: List of tips with staff details
@@ -46,6 +65,7 @@ const router = express.Router();
  *                         type: number
  *                         example: 4.8
  */
+
 router.get("/tips",authorize(USER_TYPES.HOTEL_ADMIN),HotelEmployeeTip)
 
 export default router;

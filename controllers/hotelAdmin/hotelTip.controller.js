@@ -2,17 +2,21 @@ import {
   errorResponse,
   successResponse,
 } from "../../helpers/common.helpers.js";
+import { paginationHelper } from "../../helpers/pagination.helper.js";
 import RatingReviews from "../../models/ratingsReview.model.js";
 
-export const HotelEmployeeTip = async (req, resp) => {
+export const HotelEmployeeTip = async (req, res) => {
   try {
     const user = req.user;
     const hotelDetail = req.hotel;
-    console.log(req.hotel);
-    console.log(user);
-    const tipDetail = await RatingReviews.aggregate([
+    const { limit, page, searchTerm, skip } = paginationHelper(req.query);
+
+    // Base match query
+    const matchQuery = { hotelId: hotelDetail._id };
+
+    const tipAggregation = [
       {
-        $match: { hotelId: { $eq: hotelDetail._id } },
+        $match: matchQuery,
       },
       {
         $lookup: {
@@ -28,6 +32,16 @@ export const HotelEmployeeTip = async (req, resp) => {
           preserveNullAndEmptyArrays: true,
         },
       },
+      // Apply search filter if searchTerm exists
+      ...(searchTerm
+        ? [
+            {
+              $match: {
+                "staffDetail.name": { $regex: searchTerm, $options: "i" },
+              },
+            },
+          ]
+        : []),
       {
         $project: {
           _id: 1,
@@ -38,25 +52,44 @@ export const HotelEmployeeTip = async (req, resp) => {
           staffName: "$staffDetail.name",
         },
       },
-    ]);
+    ];
+
+    // Clone pipeline for total count
+    const countPipeline = [...tipAggregation, { $count: "total" }];
+    const countResult = await RatingReviews.aggregate(countPipeline);
+    const total = countResult[0]?.total || 0;
+
+    // Add pagination stages
+    tipAggregation.push({ $skip: skip }, { $limit: limit });
+
+    const tipDetail = await RatingReviews.aggregate(tipAggregation);
+
     return successResponse(
-      resp,
+      res,
       {
         success: true,
-        message: "User fetched Successfully ",
+        message: "Tips fetched successfully",
         data: tipDetail,
+        pagination: {
+          currentPage: page,
+          limit,
+          totalData: total,
+          totalPages: Math.ceil(total / limit),
+        },
       },
       200
     );
   } catch (error) {
     console.log(error);
     return errorResponse(
-      resp,
+      res,
       {
         success: false,
-        message: "something went wrong ",
+        message: "Something went wrong",
       },
-      500
+      500,
+      error
     );
   }
 };
+

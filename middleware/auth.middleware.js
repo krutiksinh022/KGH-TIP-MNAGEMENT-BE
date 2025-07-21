@@ -7,7 +7,8 @@ import StaffDetail from "../models/staffDetail.model.js";
 import Hotel from "../models/hotel.model.js";
 dotenv.config();
 
-export const authorize = (userTypes = []) => {
+export const authorize = (userTypes) => {
+  
   return async (req, res, next) => {
     try {
       const token = req.headers.authorization?.split(" ")[1];
@@ -56,6 +57,7 @@ export const authorize = (userTypes = []) => {
       if (!userTypes || userTypes.length === 0) {
         return next();
       }
+     console.log(userTypes)
       if (!userTypes.includes(req.user.userType)) {
         return errorResponse(
           res,

@@ -10,6 +10,7 @@ import Hotel from "../../models/hotel.model.js";
 import HotelAdminDetail from "../../models/hotelAdminDetail.modal.js";
 import User from "../../models/user.model.js";
 import { createHotelValidator } from "../../validators/hotel.validators.js";
+import { paginationHelper } from "../../helpers/pagination.helper.js";
 
 export const createHotel = async (req, res) => {
   try {
@@ -253,7 +254,22 @@ export const updateHotel = async (req, res) => {
 
 export const getHotel = async (req, res) => {
   try {
+    const { page, limit, skip, searchTerm } = paginationHelper(req.query);
+
+    const matchQuery = {};
+
+    if (searchTerm) {
+      matchQuery.$or = [
+        { hotelName: { $regex: searchTerm, $options: "i" } },
+        { city: { $regex: searchTerm, $options: "i" } },
+        { state: { $regex: searchTerm, $options: "i" } },
+      ];
+    }
+
+    const total = await Hotel.countDocuments(matchQuery);
+
     const Hotels = await Hotel.aggregate([
+      { $match: matchQuery },
       {
         $project: {
           hotelName: 1,
@@ -261,10 +277,23 @@ export const getHotel = async (req, res) => {
           state: 1,
         },
       },
+      { $skip: skip },
+      { $limit: limit },
     ]);
+
     return successResponse(
       res,
-      { success: true, message: "Hotel data fetch successfully", data: Hotels },
+      {
+        success: true,
+        message: "Hotel data fetch successfully",
+        data: Hotels,
+        pagination: {
+          currentPage: page,
+          limit,
+          totalData: total,
+          totalPages: Math.ceil(total / limit),
+        },
+      },
       200
     );
   } catch (error) {
