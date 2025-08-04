@@ -57,7 +57,6 @@ export const authorize = (userTypes) => {
       if (!userTypes || userTypes.length === 0) {
         return next();
       }
-     console.log(userTypes)
       if (!userTypes.includes(req.user.userType)) {
         return errorResponse(
           res,

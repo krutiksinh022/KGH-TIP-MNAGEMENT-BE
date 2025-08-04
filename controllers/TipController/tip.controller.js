@@ -54,12 +54,13 @@ export const sendTip = async (req, resp) => {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amount * 100,
       currency: "usd",
-      description: reviews,
-      payment_method_types: ["card"],
+      description: reviews || "Staff Tip",
       transfer_data: {
         destination: findStaff.stripeId,
       },
+      automatic_payment_methods: { enabled: true }, // Automatically enables Apple Pay + Google Pay + Cards
     });
+
     const payload = {
       hotelId,
       staffId,
