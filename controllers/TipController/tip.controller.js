@@ -1,46 +1,166 @@
 import Stripe from "stripe";
-import { errorResponse, successResponse } from "../../helpers/common.helpers.js";
+import {
+  errorResponse,
+  generateJwtToken,
+  successResponse,
+} from "../../helpers/common.helpers.js";
 import StaffDetail from "../../models/staffDetail.model.js";
-import { sendTipValidator } from "../../validators/tip.validators.js";
+import {
+  reviewRatingValidator,
+  sendTipValidator,
+} from "../../validators/tip.validators.js";
+import Hotel from "../../models/hotel.model.js";
+import RatingReviews from "../../models/ratingsReview.model.js";
+import jwt from "jsonwebtoken";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export const sendTip = async (req, resp) => {
   try {
-    const { staffId, amount } = await sendTipValidator.validateAsync(req.body);
+    const { staffId, amount, hotelId, ratings, reviews, roomNo, guestName } =
+      await sendTipValidator.validateAsync(req.body);
     const findStaff = await StaffDetail.findOne({ staffId: staffId });
-    console.log(findStaff);
-      if (!findStaff) {
-        return errorResponse(resp,{success:false,message:"Staff not found"},402)
+    if (!findStaff) {
+      return errorResponse(
+        resp,
+        { success: false, message: "Staff not found" },
+        402
+      );
     }
-      if (!findStaff.staffId || !findStaff.isStripeConnected) {
-        return errorResponse(resp,{success:false,message:"Employee verification Pending"},402)
+    if (!findStaff.staffId || !findStaff.isStripeConnected) {
+      return errorResponse(
+        resp,
+        { success: false, message: "Employee verification Pending" },
+        402
+      );
     }
+    const HotelDetail = await Hotel.findById(hotelId);
+    if (!HotelDetail) {
+      return errorResponse(
+        resp,
+        {
+          success: false,
+          message: "Hotel Not Found",
+        },
+        402
+      );
+    }
+    if (!findStaff.enrolledHotels.includes(hotelId)) {
+      return errorResponse(resp, {
+        success: false,
+        message: "This staff not enrolled in hotel",
+      });
+    }
+
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amount * 100,
       currency: "usd",
-      description: `Tip for staff`,
-      payment_method_types: ["card"], 
+      description: reviews || "Staff Tip",
       transfer_data: {
         destination: findStaff.stripeId,
       },
+      automatic_payment_methods: { enabled: true }, // Automatically enables Apple Pay + Google Pay + Cards
     });
-    return successResponse(resp,{success:true,message:"Stripe connected successfully",data:paymentIntent.client_secret},200)
+
+    const payload = {
+      hotelId,
+      staffId,
+      amount,
+      ratings,
+      reviews,
+      roomNo,
+      guestName,
+    };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "20m",
+    });
+    return successResponse(
+      resp,
+      {
+        success: true,
+        message: "Stripe connected successfully",
+        data: paymentIntent.client_secret,
+        token,
+      },
+      200
+    );
   } catch (error) {
+    console.log(error);
     return errorResponse(
       resp,
       {
         success: false,
         message: "Something went wrong",
       },
+      500,
       error
     );
   }
 };
 
-export const createReviews = (req,resp) => {
-    try {
-        console.log("reviews")
-    } catch (error) {
-        return errorResponse()
+export const createReviews = async (req, resp) => {
+  try {
+    const { token } = req.body;
+    const { hotelId, staffId, amount, ratings, reviews, roomNo, guestName } =
+      jwt.verify(token, process.env.JWT_SECRET);
+    console.log(hotelId, staffId, amount, ratings, reviews, roomNo, guestName);
+    const HotelDetail = await Hotel.findById(hotelId);
+    if (!HotelDetail) {
+      return errorResponse(
+        resp,
+        {
+          success: false,
+          message: "Hotel Not Found",
+        },
+        402
+      );
     }
-}
+
+    const staff = await StaffDetail.findOne({ staffId });
+    if (!staff) {
+      return errorResponse(
+        resp,
+        {
+          success: false,
+          message: "Satff not fount",
+        },
+        402
+      );
+    }
+
+    if (!staff.enrolledHotels.includes(hotelId)) {
+      return errorResponse(resp, {
+        success: false,
+        message: "This staff not enrolled in hotel",
+      });
+    }
+
+    const newReviews = new RatingReviews({
+      hotelId,
+      staffId,
+      amount,
+      reviews,
+      ratings,
+      roomNo,
+      guestName,
+    });
+
+    await newReviews.save();
+
+    return successResponse(
+      resp,
+      { success: true, message: "Reviews submitted successfully" },
+      201
+    );
+  } catch (error) {
+    console.log(error);
+    return errorResponse(
+      resp,
+      {
+        success: false,
+        message: "Something went wrong",
+      },
+      500,
+      error
+    );
+  }
+};

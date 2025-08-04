@@ -1,8 +1,10 @@
-import express from "express"
-import { createReviews, sendTip } from "../../controllers/TipController/tip.controller.js"
+import express from "express";
+import {
+  createReviews,
+  sendTip,
+} from "../../controllers/TipController/tip.controller.js";
 
-
-const router = express.Router()
+const router = express.Router();
 
 /**
  * @swagger
@@ -49,8 +51,48 @@ const router = express.Router()
  *         description: Server error while processing tip
  */
 
-router.post("/send-tip", sendTip)
+router.post("/send-tip", sendTip);
 
-router.post("/review-rating",createReviews);
+/**
+ * @swagger
+ * /tip-management/review-rating:
+ *   post:
+ *     summary: Submit a tip via token
+ *     tags:
+ *       - Tip Management
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: Secure token containing tip and user details
+ *                 example: "eyJhbGciOiJIUzI1NiIsInR5cCI..."
+ *     responses:
+ *       200:
+ *         description: Review and rating submitted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Review submitted successfully
+ *       400:
+ *         description: Bad request or missing token
+ *       500:
+ *         description: Internal server error
+ */
 
-export default router
+router.post("/review-rating", createReviews);
+
+export default router;

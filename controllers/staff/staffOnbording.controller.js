@@ -1,3 +1,4 @@
+import { mongo } from "mongoose";
 import { HOTEL_STAFF_ENROLLMENT } from "../../constants/common.constants.js";
 import {
   errorResponse,
@@ -7,16 +8,17 @@ import Hotel from "../../models/hotel.model.js";
 import HotelStaffEnrollment from "../../models/hotelStaffEnrollment.model.js";
 import StaffDetail from "../../models/staffDetail.model.js";
 import { requestResponseValidator } from "../../validators/staff.validators.js";
+import mongoose from "mongoose";
 
 export const StaffOnboardingRequest = async (req, resp) => {
   try {
     const userId = req.user._id;
     const statusQuery = req.query.status; // Get status from query parameters
-
+    console.log(statusQuery);
     const matchStage = {
-      staffId: { $eq: userId },
+      staffId: { $eq: new mongoose.Types.ObjectId(userId) },
     };
-
+    console.log(userId);
     if (statusQuery) {
       matchStage.status = statusQuery; // Add status filter if provided
     }
@@ -68,8 +70,8 @@ export const StaffOnboardingRequest = async (req, resp) => {
     return successResponse(
       resp,
       {
-        success: false,
-        message: "Pending request fetch successFully",
+        success: true,
+        message: `${statusQuery||"All"} request fetch successFully`,
         data: pendingRequest,
       },
       200
@@ -88,13 +90,19 @@ export const StaffOnboardingRequest = async (req, resp) => {
 export const responseStaffRequest = async (req, resp) => {
   try {
     const { requestId } = req.params;
+
     const { response } = await requestResponseValidator.validateAsync(req.body);
     const requestDetail = await HotelStaffEnrollment.findById(requestId);
+    console.log(requestDetail, requestId);
     if (!requestDetail) {
-      return errorResponse(resp, {
-        success: false,
-        message: "Request not found",
-      });
+      return errorResponse(
+        resp,
+        {
+          success: false,
+          message: "Request not found",
+        },
+        401
+      );
     }
     // if (requestDetail.status !== HOTEL_STAFF_ENROLLMENT.PENDING) {
     //   return errorResponse(
@@ -126,6 +134,7 @@ export const responseStaffRequest = async (req, resp) => {
       200
     );
   } catch (error) {
+    console.log(error);
     return errorResponse(
       resp,
       { success: false, message: "Something went wrong" },

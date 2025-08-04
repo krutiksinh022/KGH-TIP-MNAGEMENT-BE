@@ -16,10 +16,10 @@ export const registerStaffValidator = Joi.object({
     }),
 
   mobileNumber: Joi.string()
-    .pattern(/^\d{10}$/)
+    .pattern(/^\d{9,15}$/)
     .required()
     .messages({
-      "string.pattern.base": "Mobile number must be exactly 10 digits.",
+      "string.pattern.base": "Mobile number must be between 9 and 15 digits.",
       "any.required": "Mobile number is required.",
     }),
 

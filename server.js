@@ -8,9 +8,14 @@ import cors from "cors"
 import  "./config/connectDB.js";
 dotenv.config();
 const app = express();
-
+app.use(cors());
 app.use(express.json());
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+app.use(
+  cors({
+    origin: "*", // Allow all origins
+    credentials: true, // Note: This will not work with "*" as origin. See explanation below.
+  })
+);
 
 app.use("",router)
 

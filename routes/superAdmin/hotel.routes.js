@@ -1,5 +1,11 @@
 import express from "express";
-import { createHotel, deleteHotel, getHotel, getSingleHotelId, updateHotel } from "../../controllers/superAdmin/hotel.controller.js";
+import {
+  createHotel,
+  deleteHotel,
+  getHotel,
+  getSingleHotelId,
+  updateHotel,
+} from "../../controllers/superAdmin/hotel.controller.js";
 import { authorize } from "../../middleware/auth.middleware.js";
 import { USER_TYPES } from "../../constants/common.constants.js";
 
@@ -88,7 +94,11 @@ const router = express.Router();
  *       500:
  *         description: Internal server error
  */
-router.post("/hotel-management", authorize([USER_TYPES.SUPER_ADMIN]), createHotel)
+router.post(
+  "/hotel-management",
+  authorize([USER_TYPES.SUPER_ADMIN]),
+  createHotel
+);
 
 /**
  * @swagger
@@ -177,7 +187,11 @@ router.post("/hotel-management", authorize([USER_TYPES.SUPER_ADMIN]), createHote
  *         description: Internal server error
  */
 
-router.put("/hotel-management/:hotelId", authorize([USER_TYPES.SUPER_ADMIN]), updateHotel)
+router.put(
+  "/hotel-management/:hotelId",
+  authorize([USER_TYPES.SUPER_ADMIN]),
+  updateHotel
+);
 /**
  * @swagger
  * /super-admin/hotel-management:
@@ -199,6 +213,11 @@ router.put("/hotel-management/:hotelId", authorize([USER_TYPES.SUPER_ADMIN]), up
  *           type: integer
  *           default: 10
  *         description: Number of items per page
+ *       - in: query
+ *         name: searchTerm
+ *         schema:
+ *           type: string
+ *         description: Search term for hotel name, city, or state
  *     responses:
  *       200:
  *         description: List of hotels retrieved successfully
@@ -250,7 +269,8 @@ router.put("/hotel-management/:hotelId", authorize([USER_TYPES.SUPER_ADMIN]), up
  *                   type: string
  *                   example: Failed to fetch hotel list
  */
-router.get("/hotel-management", authorize([USER_TYPES.SUPER_ADMIN]), getHotel)
+
+router.get("/hotel-management", authorize([USER_TYPES.SUPER_ADMIN]), getHotel);
 
 /**
  * @swagger
@@ -300,7 +320,11 @@ router.get("/hotel-management", authorize([USER_TYPES.SUPER_ADMIN]), getHotel)
  *                   example: Failed to delete hotel
  */
 
-router.delete("/hotel-management/:hotelId",authorize([USER_TYPES.SUPER_ADMIN]),deleteHotel)
+router.delete(
+  "/hotel-management/:hotelId",
+  authorize([USER_TYPES.SUPER_ADMIN]),
+  deleteHotel
+);
 
 /**
  * @swagger
@@ -353,5 +377,9 @@ router.delete("/hotel-management/:hotelId",authorize([USER_TYPES.SUPER_ADMIN]),d
  *       500:
  *         description: Internal server error
  */
-router.get("/hotel-management/:hotelId", authorize([USER_TYPES.SUPER_ADMIN]),getSingleHotelId)
+router.get(
+  "/hotel-management/:hotelId",
+  authorize([USER_TYPES.SUPER_ADMIN, USER_TYPES.HOTEL_ADMIN]),
+  getSingleHotelId
+);
 export default router;
