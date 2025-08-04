@@ -1,21 +1,19 @@
-import { USER_TYPES } from "../constants/common.constants.js";
+import { USER_TYPES } from "../../constants/common.constants.js";
 import {
   errorResponse,
   generateJwtToken,
   successResponse,
-} from "../helpers/common.helpers.js";
-import { sendEmail } from "../helpers/nodemail.helper.js";
-import ForgotPasswordRequest from "../models/forgotPasswordRequest.model.js";
-import ForgotPassword from "../models/forgotPasswordRequest.model.js";
-import Hotel from "../models/hotel.model.js";
-import User from "../models/user.model.js";
+} from "../../helpers/common.helpers.js";
+import { sendEmail } from "../../helpers/nodemail.helper.js";
+import ForgotPasswordRequest from "../../models/forgotPasswordRequest.model.js";
+import User from "../../models/user.model.js";
 import {
   changePasswordValidator,
   forgotPasswordValidator,
   loginValidator,
   resetPasswordValidator,
   verifyOtpValidator,
-} from "../validators/auth.validators.js";
+} from "../../validators/auth.validators.js";
 
 export const login = async (req, resp) => {
   try {
@@ -23,7 +21,7 @@ export const login = async (req, resp) => {
     const { email, password } = result;
     console.log(email, password);
     const user = await User.findOne({ email: email.toLowerCase() });
-    console.log(user);
+
     if (!user) {
       return errorResponse(
         resp,
@@ -56,11 +54,6 @@ export const login = async (req, resp) => {
       userType: user.userType,
     };
 
-    if (userData.userType == USER_TYPES.HOTEL_ADMIN) {
-      const adminHotel = await Hotel.findOne({ admin: user._id });
-      
-      userData.hotelId = adminHotel._id;
-    }
     return resp.status(200).json({
       success: true,
       message: "Login successful",
@@ -173,7 +166,7 @@ export const verifyOtp = async (req, resp) => {
         404
       );
     }
-    const forgotPasswordRequest = await ForgotPassword.findOne({
+    const forgotPasswordRequest = await ForgotPasswordRequest.findOne({
       userId: user._id,
     });
     if (!forgotPasswordRequest) {

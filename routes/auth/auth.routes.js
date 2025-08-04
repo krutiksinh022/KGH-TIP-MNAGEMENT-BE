@@ -1,6 +1,13 @@
 import express from "express";
-import { changePassword, forgotPassword, login, logOut, resetPassword, verifyOtp } from "../controllers/auth.controller.js";
-import { authorize } from "../middleware/auth.middleware.js";
+import {
+  changePassword,
+  forgotPassword,
+  login,
+  logOut,
+  resetPassword,
+  verifyOtp,
+} from "../../controllers/auth/auth.controller.js";
+import { authorize } from "../../middleware/auth.middleware.js";
 
 const router = express.Router();
 
@@ -20,7 +27,6 @@ const router = express.Router();
  *       scheme: bearer
  *       bearerFormat: JWT
  */
-
 
 /**
  * @swagger
@@ -127,7 +133,7 @@ router.post("/login", login);
  *                   example: Unauthorized
  */
 
-router.post("/logout",authorize(),logOut)
+router.post("/logout", authorize(), logOut);
 
 /**
  * @swagger
@@ -183,7 +189,7 @@ router.post("/logout",authorize(),logOut)
  *                     type: string
  *                   example: ["Email is required", "Invalid email format"]
  */
-router.post("/forgot-password",forgotPassword );
+router.post("/forgot-password", forgotPassword);
 
 /**
  * @swagger
@@ -253,7 +259,7 @@ router.post("/forgot-password",forgotPassword );
  *                     type: string
  *                   example: ["Email and OTP are required"]
  */
-router.post("/verify",verifyOtp)
+router.post("/verify", verifyOtp);
 
 /**
  * @swagger
@@ -314,65 +320,7 @@ router.post("/verify",verifyOtp)
  *                     type: string
  *                   example: ["Email and newPassword are required"]
  */
-router.post("/reset-passWord", resetPassword)
+router.post("/reset-passWord", resetPassword);
 
-/**
- * @swagger
- * /auth/change-password:
- *   put:
- *     tags: [Authentication]
- *     summary: Change user password
- *     description: Allows an authenticated user to change their password. Requires a Bearer token.
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - newPassword
- *             properties:
- *               newPassword:
- *                 type: string
- *                 format: password
- *                 example: NewStrongPassword@123
- *     responses:
- *       200:
- *         description: Password changed successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Password changed successfully
- *       401:
- *         description: Unauthorized - Invalid or missing token
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Unauthorized
- *       422:
- *         description: Validation error (missing or invalid fields)
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 errors:
- *                   type: array
- *                   items:
- *                     type: string
- *                   example: ["newPassword is required"]
- *       500:
- *         description: Internal Server Error
- */
-router.put("/change-password",authorize(),changePassword)
+
 export default router;

@@ -3,12 +3,11 @@ import dotenv from "dotenv";
 import User from "../models/user.model.js";
 import { errorResponse } from "../helpers/common.helpers.js";
 import { USER_TYPES } from "../constants/common.constants.js";
-import StaffDetail from "../models/staffDetail.model.js";
-import Hotel from "../models/hotel.model.js";
+// import StaffDetail from "../models/staffDetail.model.js";
+// import Hotel from "../models/hotel.model.js";
 dotenv.config();
 
 export const authorize = (userTypes) => {
-  
   return async (req, res, next) => {
     try {
       const token = req.headers.authorization?.split(" ")[1];
@@ -31,24 +30,24 @@ export const authorize = (userTypes) => {
           401
         );
       }
-      if (user.userType == USER_TYPES.Staff && !user.isEmailVerified) {
-        return errorResponse(
-          res,
-          { message: "Email verification is pending please verify it" },
-          401
-        );
-      }
-      if (user.userType == USER_TYPES.HOTEL_ADMIN) {
-        const hotelDetail = await Hotel.findOne({ admin: { $in: [user._id] } });
-        req.hotel = hotelDetail;
-      }
-      if (user.userType == USER_TYPES.Staff) {
-        const findStaffDetail = await StaffDetail.findOne({
-          staffId: user._id,
-        });
+      //   if (user.userType == USER_TYPES.Staff && !user.isEmailVerified) {
+      //     return errorResponse(
+      //       res,
+      //       { message: "Email verification is pending please verify it" },
+      //       401
+      //     );
+      //   }
+      //   if (user.userType == USER_TYPES.HOTEL_ADMIN) {
+      //     const hotelDetail = await Hotel.findOne({ admin: { $in: [user._id] } });
+      //     req.hotel = hotelDetail;
+      //   }
+      //   if (user.userType == USER_TYPES.Staff) {
+      //     const findStaffDetail = await StaffDetail.findOne({
+      //       staffId: user._id,
+      //     });
 
-        req.staffDetail = findStaffDetail;
-      }
+      //     req.staffDetail = findStaffDetail;
+      //   }
       req.user = user;
       if (!user.jwtToken || user.jwtToken !== token) {
         return errorResponse(res, { message: "You have been logged out" }, 401);
