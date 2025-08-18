@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import User from "../models/user.model.js";
 import { errorResponse } from "../helpers/common.helpers.js";
 import { USER_TYPES } from "../constants/common.constants.js";
+import Hotel from "../models/hotel.model.js";
 // import StaffDetail from "../models/staffDetail.model.js";
 // import Hotel from "../models/hotel.model.js";
 dotenv.config();
@@ -37,10 +38,10 @@ export const authorize = (userTypes) => {
       //       401
       //     );
       //   }
-      //   if (user.userType == USER_TYPES.HOTEL_ADMIN) {
-      //     const hotelDetail = await Hotel.findOne({ admin: { $in: [user._id] } });
-      //     req.hotel = hotelDetail;
-      //   }
+        if (user.userType == USER_TYPES.HOTEL_ADMIN) {
+          const hotelDetail = await Hotel.findOne({ adminIds: { $in: [user._id] } });
+          req.hotel = hotelDetail;
+        }
       //   if (user.userType == USER_TYPES.Staff) {
       //     const findStaffDetail = await StaffDetail.findOne({
       //       staffId: user._id,
