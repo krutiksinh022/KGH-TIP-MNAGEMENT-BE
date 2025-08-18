@@ -48,10 +48,10 @@ const router = express.Router();
  *               email:
  *                 type: string
  *                 format: email
- *                 example: user@example.com
+ *                 example: superAdminKGH@yopmail.com
  *               password:
  *                 type: string
- *                 example: yourPassword123
+ *                 example: Admin@123
  *     responses:
  *       200:
  *         description: Successful login
@@ -321,6 +321,5 @@ router.post("/verify", verifyOtp);
  *                   example: ["Email and newPassword are required"]
  */
 router.post("/reset-passWord", resetPassword);
-
 
 export default router;
