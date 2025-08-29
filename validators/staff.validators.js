@@ -1,54 +1,39 @@
 import Joi from "joi";
+import { CONTRACTOR, DIRECT_HIRE } from "../constants/common.constants.js";
 
-export const registerStaffValidator = Joi.object({
-  name: Joi.string().required().messages({
-    "string.base": "Name must be a string.",
-    "any.required": "Name is required.",
+export const inviteStaffValidator = Joi.object({
+  firstName: Joi.string().trim().required().messages({
+    "string.base": "First name must be a string.",
+    "string.empty": "First name is required.",
   }),
-
-  email: Joi.string()
-    .email({ tlds: { allow: false } })
+  lastName: Joi.string().trim().required().messages({
+    "string.base": "Last name must be a string.",
+    "string.empty": "Last name is required.",
+  }),
+  phoneNumber: Joi.string()
+    .pattern(/^\+?[1-9]\d{1,14}$/) // E.164 format
     .required()
     .messages({
-      "string.base": "Email must be a string.",
-      "string.email": "Email must be a valid email address.",
-      "any.required": "Email is required.",
+      "string.pattern.base":
+        "Phone number must be in valid international format (e.g., +12015550123).",
+      "string.empty": "Phone number is required.",
     }),
-
-  mobileNumber: Joi.string()
-    .pattern(/^\d{9,15}$/)
+  email: Joi.string().email().required().messages({
+    "string.email": "Email must be a valid email address.",
+    "string.empty": "Email is required.",
+  }),
+  employmentType: Joi.string()
+    .valid(CONTRACTOR, DIRECT_HIRE)
     .required()
     .messages({
-      "string.pattern.base": "Mobile number must be between 9 and 15 digits.",
-      "any.required": "Mobile number is required.",
+      "any.only": `Employment type must be one of [${CONTRACTOR}, ${DIRECT_HIRE}].`,
+      "string.empty": "Employment type is required.",
     }),
-
-  password: Joi.string().min(8).required().messages({
-    "string.base": "Password must be a string.",
-    "string.min": "Password must be at least 8 characters long.",
-    "any.required": "Password is required.",
-  }),
-
-  address: Joi.string().required().messages({
-    "string.base": "Address must be a string.",
-    "any.required": "Address is required.",
-  }),
-
-  city: Joi.string().required().messages({
-    "string.base": "City must be a string.",
-    "any.required": "City is required.",
-  }),
-
-  state: Joi.string().required().messages({
-    "string.base": "State must be a string.",
-    "any.required": "State is required.",
-  }),
-});
-
-export const requestResponseValidator = Joi.object({
-  response: Joi.string().valid("Approved", "Rejected").required().messages({
-    "string.base": "Response must be a string.",
-    "any.only": 'Response must be either "Approved" or "Rejected".',
-    "any.required": "Response is required.",
-  }),
+  department: Joi.string()
+    .regex(/^[0-9a-fA-F]{24}$/) // MongoDB ObjectId
+    .required()
+    .messages({
+      "string.pattern.base": "Department must be a valid MongoDB ObjectId.",
+      "string.empty": "Department is required.",
+    }),
 });

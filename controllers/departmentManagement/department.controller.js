@@ -119,7 +119,6 @@ export const updateDepartment = async (req, resp) => {
   }
 };
 
-
 export const deleteDepartment = async (req, resp) => {
   try {
     const { departmentId } = req.params;
@@ -159,11 +158,17 @@ export const getDepartments = async (req, resp) => {
   try {
     const hotelId = req.hotel?._id || req.user?.hotelId;
     if (!hotelId) {
-      return errorResponse(resp, { message: "Hotel not found for this admin" }, 404);
+      return errorResponse(
+        resp,
+        { message: "Hotel not found for this admin" },
+        404
+      );
     }
 
     // Fetch only departmentName field
-    const departments = await Department.find({ hotelId }).select("departmentName");
+    const departments = await Department.find({ hotelId }).select(
+      "departmentName"
+    );
 
     return successResponse(
       resp,
@@ -178,4 +183,3 @@ export const getDepartments = async (req, resp) => {
     return errorResponse(resp, { message: "Server error" }, 500, error);
   }
 };
-

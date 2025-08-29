@@ -9,6 +9,10 @@ export const HOTEL_STAFF_ENROLLMENT = {
   REJECTED: "Rejected",
 };
 export const OBJECTID_PATTERN = /^[0-9a-fA-F]{24}$/;
+export const CONTRACTOR = "Contractor";
+export const DIRECT_HIRE = "Direct Hire";
+export const INVITED = "Invited";
+export const REGISTERED = "Registered";
 
 export const STATES = {
   AL: "Alabama",
