@@ -61,3 +61,17 @@ export const changePasswordValidator = Joi.object({
     "any.required": `New Password is required`,
   }),
 });
+
+export const resetPasswordWithTokenValidator = Joi.object({
+  token: Joi.string().required().messages({
+    "string.base": `Token should be a type of text`,
+    "string.empty": `Token cannot be empty`,
+    "any.required": `Token is required`,
+  }),
+  password: Joi.string().min(6).required().messages({
+    "string.base": `Password should be a type of text`,
+    "string.empty": `Password cannot be empty`,
+    "string.min": `Password should be at least 6 characters long`,
+    "any.required": `Password is required`,
+  }),
+});

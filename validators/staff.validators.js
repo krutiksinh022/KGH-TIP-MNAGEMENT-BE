@@ -37,3 +37,37 @@ export const inviteStaffValidator = Joi.object({
       "string.empty": "Department is required.",
     }),
 });
+
+export const staffBankDetailValidator = Joi.object({
+  accountHolderName: Joi.string().required().messages({
+    "string.base": "Account holder name must be a string.",
+    "string.empty": "Account holder name is required.",
+    "any.required": "Account holder name is required.",
+  }),
+  iban: Joi.string()
+    .pattern(/^[A-Z0-9]+$/)
+    .allow("")
+    .messages({
+      "string.pattern.base": "IBAN must contain only alphanumeric characters.",
+    }),
+  accountNumber: Joi.string().allow("").messages({
+    "string.base": "Account number must be a string.",
+  }),
+  branchCode: Joi.string().allow("").messages({
+    "string.base": "Branch code must be a string.",
+  }),
+  bankName: Joi.string().allow("").messages({
+    "string.base": "Bank name must be a string.",
+  }),
+  countryCode: Joi.string().length(2).required().messages({
+    "string.base": "Country code must be a string.",
+    "string.length": "Country code must be exactly 2 letters (ISO).",
+    "any.required": "Country code is required.",
+  }),
+  currency: Joi.string().length(3).required().messages({
+    "string.base": "Currency must be a string.",
+    "string.length":
+      "Currency must be a valid 3-letter ISO code (e.g., EUR, USD).",
+    "any.required": "Currency is required.",
+  }),
+});
