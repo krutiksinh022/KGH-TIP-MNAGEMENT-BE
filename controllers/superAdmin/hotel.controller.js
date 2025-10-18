@@ -13,6 +13,8 @@ import { createHotelValidator } from "../../validators/hotel.validators.js";
 
 export const createHotel = async (req, res) => {
   try {
+    // 1️⃣ Validate request body
+    console.log("rrrrr", req.body);
     const result = await createHotelValidator.validateAsync(req.body);
     const {
       hotelName,
@@ -25,54 +27,51 @@ export const createHotel = async (req, res) => {
       website,
     } = result;
 
-    // Check if any admin email already exists
+    // 2️⃣ Check if any admin emails already exist
+
     const existingAdmins = await User.find({ email: { $in: admin } });
+    console.log("existingAdmins", existingAdmins);
     if (existingAdmins.length > 0) {
+      const emails = existingAdmins.map((u) => u.email).join(", ");
       return errorResponse(
         res,
-        {
-          success: false,
-          message: `Admin with email ${existingAdmins[0].email} already registered`,
-        },
-        404
+        { success: false, message: `Admin(s) already registered: ${emails}` },
+        409
       );
     }
 
-    // Check if hotel with the same phone number exists
-    const existingHotel = await Hotel.findOne({
-      phoneNumber: { $in: phoneNumber },
-    });
-
+    // 3️⃣ Check if hotel with same phone number exists
+    // phoneNumber is a string in your schema, so no $in
+    const existingHotel = await Hotel.findOne({ phoneNumber });
     if (existingHotel) {
       return errorResponse(
         res,
         {
           success: false,
-          message: `One or more phone numbers already registered with another hotel`,
+          message: `Phone number already registered with another hotel`,
         },
         409
       );
     }
 
-    // Create hotel admin accounts
+    // 4️⃣ Create hotel admin accounts
     const createdAdminAccounts = await Promise.all(
       admin.map(async (email) => {
-        const password = generateDefaultPassword();
+        // const password = generateDefaultPassword();
+        const password = "Admin@123";
+        const name = email;
         const user = new User({
           email,
+          name,
           userType: USER_TYPES.HOTEL_ADMIN,
-          password,
+          password, // Make sure your User schema hashes password automatically
         });
         const savedUser = await user.save();
-        return {
-          id: savedUser._id,
-          email: savedUser.email,
-          password,
-        };
+        return { id: savedUser._id, email: savedUser.email, password };
       })
     );
 
-    // Create hotel with admin references
+    // 5️⃣ Create hotel with admin references
     const newHotel = new Hotel({
       hotelName,
       address,
@@ -83,30 +82,31 @@ export const createHotel = async (req, res) => {
       country,
       website,
     });
-
     const savedHotel = await newHotel.save();
 
-    // Send welcome emails to admins
+    // 6️⃣ Send welcome emails to admins (log errors but don't fail)
     await Promise.all(
-      createdAdminAccounts.map(({ email, password }) =>
-        sendEmail(
-          email,
-          "Your Hotel Admin Account Credentials",
-          `Welcome to the hotel management system.\n\nYour login credentials:\nEmail: ${email}\nPassword: ${password}\n\nPlease change your password after logging in.`
-        )
-      )
+      createdAdminAccounts.map(async ({ email, password }) => {
+        try {
+          await sendEmail(
+            email,
+            "Your Hotel Admin Account Credentials",
+            `Welcome to the hotel management system.\n\nYour login credentials:\nEmail: ${email}\nPassword: ${password}\n\nPlease change your password after logging in.`
+          );
+        } catch (err) {
+          console.error(`Failed to send email to ${email}:`, err);
+        }
+      })
     );
 
-    // Create HotelAdminDetail records
+    // 7️⃣ Create HotelAdminDetail records
     await Promise.all(
       createdAdminAccounts.map(({ id }) =>
-        new HotelAdminDetail({
-          hotelId: savedHotel._id,
-          adminId: id,
-        }).save()
+        new HotelAdminDetail({ hotelId: savedHotel._id, adminId: id }).save()
       )
     );
 
+    // 8️⃣ Return success response
     return res.status(201).json({
       success: true,
       message: "Hotel created successfully",
@@ -123,15 +123,17 @@ export const createHotel = async (req, res) => {
   }
 };
 
-
-
 export const updateHotel = async (req, res) => {
   try {
     const { hotelId } = req.params;
 
-    const findHotel = await Hotel.findById(hotelId).populate('admin');
+    const findHotel = await Hotel.findById(hotelId).populate("admin");
     if (!findHotel) {
-      return errorResponse(res, { success: false, message: "Hotel Not Found" }, 404);
+      return errorResponse(
+        res,
+        { success: false, message: "Hotel Not Found" },
+        404
+      );
     }
 
     const result = await createHotelValidator.validateAsync(req.body);
@@ -150,7 +152,9 @@ export const updateHotel = async (req, res) => {
 
     const oldAdmins = await User.find({ email: { $in: newAdminEmails } });
     for (const oldAdmin of oldAdmins) {
-      const findAdminHotel = await HotelAdminDetail.findOne({ adminId: oldAdmin._id });
+      const findAdminHotel = await HotelAdminDetail.findOne({
+        adminId: oldAdmin._id,
+      });
 
       if (findAdminHotel && findAdminHotel.hotelId.toString() !== hotelId) {
         return errorResponse(
@@ -164,8 +168,12 @@ export const updateHotel = async (req, res) => {
       }
     }
 
-    const emailsToAdd = newAdminEmails.filter((email) => !oldAdminEmails.includes(email));
-    const emailsToRemove = oldAdminEmails.filter((email) => !newAdminEmails.includes(email));
+    const emailsToAdd = newAdminEmails.filter(
+      (email) => !oldAdminEmails.includes(email)
+    );
+    const emailsToRemove = oldAdminEmails.filter(
+      (email) => !newAdminEmails.includes(email)
+    );
 
     const newAdminIds = [];
 
@@ -239,23 +247,24 @@ export const updateHotel = async (req, res) => {
   }
 };
 
-export const getHotel = async (req,res) => {
+export const getHotel = async (req, res) => {
   try {
-    
-    const Hotels = await Hotel.aggregate(
-      [{
-        $project: {
-        hotelName:1,
-          city: 1,
-        state:1
-      }}]
-    )
-    return successResponse(res,{success:true,message:"Hotel data fetch successfully",data:Hotels},200)
+    const hotels = await Hotel.find();
+    return successResponse(
+      res,
+      { success: true, message: "Hotel data fetch successfully", data: hotels },
+      200
+    );
   } catch (error) {
     console.log(error);
-    return errorResponse(res,{success:false,message:"Something went wrong"},500,error)
+    return errorResponse(
+      res,
+      { success: false, message: "Something went wrong" },
+      500,
+      error
+    );
   }
-}
+};
 
 export const deleteHotel = async (req, res) => {
   try {
@@ -263,10 +272,14 @@ export const deleteHotel = async (req, res) => {
 
     const findHotel = await Hotel.findById(hotelId);
     if (!findHotel) {
-      return errorResponse(res, {
-        success: false,
-        message: "Invalid Hotel ID. Hotel not found"
-      }, 404);
+      return errorResponse(
+        res,
+        {
+          success: false,
+          message: "Invalid Hotel ID. Hotel not found",
+        },
+        404
+      );
     }
 
     // Get associated admin IDs
@@ -283,15 +296,19 @@ export const deleteHotel = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Hotel and associated admins deleted successfully"
+      message: "Hotel and associated admins deleted successfully",
     });
-
   } catch (error) {
     console.error("Error in deleteHotel:", error);
-    return errorResponse(res, {
-      success: false,
-      message: "Something went wrong while deleting hotel"
-    }, 500, error.message);
+    return errorResponse(
+      res,
+      {
+        success: false,
+        message: "Something went wrong while deleting hotel",
+      },
+      500,
+      error.message
+    );
   }
 };
 
@@ -312,25 +329,25 @@ export const getSingleHotelId = async (req, resp) => {
       },
       {
         $addFields: {
-  adminEmails: {
-    $reduce: {
-      input: "$adminData",
-      initialValue: [],
-      in: {
-        $concatArrays: [
-          "$$value",
-          {
-            $cond: {
-              if: { $isArray: "$$this.email" },
-              then: "$$this.email",
-              else: [ "$$this.email" ]  // wrap string in array
-            }
-          }
-        ]
-      }
-    }
-  }
-}
+          adminEmails: {
+            $reduce: {
+              input: "$adminData",
+              initialValue: [],
+              in: {
+                $concatArrays: [
+                  "$$value",
+                  {
+                    $cond: {
+                      if: { $isArray: "$$this.email" },
+                      then: "$$this.email",
+                      else: ["$$this.email"], // wrap string in array
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
       },
       {
         $project: {
@@ -347,24 +364,35 @@ export const getSingleHotelId = async (req, resp) => {
     ]);
 
     if (!hotel || hotel.length === 0) {
-      return errorResponse(resp, {
-        success: false,
-        message: "Hotel not found",
-      }, 404);
+      return errorResponse(
+        resp,
+        {
+          success: false,
+          message: "Hotel not found",
+        },
+        404
+      );
     }
 
-    return successResponse(resp, {
-      success: true,
-      message: "Hotel data fetched successfully",
-      data: hotel[0],
-    }, 200);
+    return successResponse(
+      resp,
+      {
+        success: true,
+        message: "Hotel data fetched successfully",
+        data: hotel[0],
+      },
+      200
+    );
   } catch (error) {
     console.error(error);
-    return errorResponse(resp, {
-      success: false,
-      message: "Something went wrong",
-    }, 500, error);
+    return errorResponse(
+      resp,
+      {
+        success: false,
+        message: "Something went wrong",
+      },
+      500,
+      error
+    );
   }
 };
-
-

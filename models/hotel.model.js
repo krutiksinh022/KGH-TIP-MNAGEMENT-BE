@@ -20,11 +20,9 @@ const hotelSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    phoneNumber: [
-      {
-        type: String,
-      },
-    ],
+    phoneNumber: {
+      type: String,
+    },
     admin: [
       {
         type: mongoose.Schema.Types.ObjectId,

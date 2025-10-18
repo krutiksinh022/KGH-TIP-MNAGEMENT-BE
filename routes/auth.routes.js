@@ -1,5 +1,11 @@
 import express from "express";
-import { forgotPassword, login, logOut, resetPassword, verifyOtp } from "../controllers/auth.controller.js";
+import {
+  forgotPassword,
+  login,
+  logOut,
+  resetPassword,
+  verifyOtp,
+} from "../controllers/auth.controller.js";
 import { authorize } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
@@ -21,7 +27,6 @@ const router = express.Router();
  *       bearerFormat: JWT
  */
 
-
 /**
  * @swagger
  * /auth/login:
@@ -42,10 +47,10 @@ const router = express.Router();
  *               email:
  *                 type: string
  *                 format: email
- *                 example: user@example.com
+ *                 example: superAdminKGH@yopmail.com
  *               password:
  *                 type: string
- *                 example: yourPassword123
+ *                 example: Admin@123
  *     responses:
  *       200:
  *         description: Successful login
@@ -127,7 +132,7 @@ router.post("/login", login);
  *                   example: Unauthorized
  */
 
-router.post("/logout",authorize(),logOut)
+router.post("/logout", authorize(), logOut);
 
 /**
  * @swagger
@@ -148,7 +153,7 @@ router.post("/logout",authorize(),logOut)
  *               email:
  *                 type: string
  *                 format: email
- *                 example: user@example.com
+ *                 example: superAdminKGH@yopmail.com
  *     responses:
  *       200:
  *         description: Reset link sent successfully
@@ -183,7 +188,7 @@ router.post("/logout",authorize(),logOut)
  *                     type: string
  *                   example: ["Email is required", "Invalid email format"]
  */
-router.post("/forgot-password",forgotPassword );
+router.post("/forgot-password", forgotPassword);
 
 /**
  * @swagger
@@ -205,7 +210,7 @@ router.post("/forgot-password",forgotPassword );
  *               email:
  *                 type: string
  *                 format: email
- *                 example: user@example.com
+ *                 example: superAdminKGH@yopmail.com
  *               otp:
  *                 type: string
  *                 example: 123456
@@ -253,7 +258,7 @@ router.post("/forgot-password",forgotPassword );
  *                     type: string
  *                   example: ["Email and OTP are required"]
  */
-router.post("/verify",verifyOtp)
+router.post("/verify", verifyOtp);
 
 /**
  * @swagger
@@ -275,7 +280,7 @@ router.post("/verify",verifyOtp)
  *               email:
  *                 type: string
  *                 format: email
- *                 example: user@example.com
+ *                 example: superAdminKGH@yopmail.com
  *               newPassword:
  *                 type: string
  *                 format: password
@@ -314,5 +319,5 @@ router.post("/verify",verifyOtp)
  *                     type: string
  *                   example: ["Email and newPassword are required"]
  */
-router.post("/reset-passWord",resetPassword)
+router.post("/reset-passWord", resetPassword);
 export default router;
