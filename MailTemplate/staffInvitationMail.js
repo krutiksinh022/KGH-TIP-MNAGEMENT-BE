@@ -61,6 +61,9 @@ export const createStaffInviteTemplate = (
       margin-top: 15px;
       font-weight: bold;
     }
+    .btn:hover {
+      background: #218838;
+    }
   </style>
 </head>
 <body>
@@ -68,19 +71,22 @@ export const createStaffInviteTemplate = (
     <div class="header">Hotel Staff Invitation</div>
     <div class="content">
       <p>Dear <strong>${firstName} ${lastName}</strong>,</p>
-      <p>You have been invited to join our hotel team as a <b>${employementType}</b> in the <b>${department}</b> department.</p>
+      <p>
+        You have been invited to join our hotel team as a 
+        <b>${employementType}</b> in the <b>${department}</b> department.
+      </p>
       
       <div class="info-box">
         <p><strong>Registered Email:</strong> ${email}</p>
       </div>
       
-      <p>Please click the button below to complete your registration and provide the required details:</p>
-      <a href="${
-        process.env.FRONT_HOTEL_ADMIN_URL
-      }/staff/register?token=${token}" class="btn">Complete Registration</a>
+      <p>
+        Please click the button below to verify your invitation and complete your registration:
+      </p>
 
-      <p>If the button doesn’t work, copy and paste the following link into your browser:</p>
-      <p>${process.env.FRONT_HOTEL_ADMIN_URL}/staff/register?token=${token}</p>
+      <!-- Dynamic verification link -->
+      <a href="http://localhost:5000/staff/verify-staff?token=${token}" 
+         class="btn">Verify & Complete Registration</a>
 
       <p>We look forward to having you on our team!</p>
     </div>

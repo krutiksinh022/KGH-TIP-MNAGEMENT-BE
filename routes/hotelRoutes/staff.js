@@ -1,7 +1,11 @@
 import express from "express";
 import { authorize } from "../../middleware/auth.middleware.js";
 import { USER_TYPES } from "../../constants/common.constants.js";
-import { inviteStaff } from "../../controllers/StaffManagement/staff.controller.js";
+import {
+  getAllStaff,
+  inviteStaff,
+  updateStaff,
+} from "../../controllers/StaffManagement/staff.controller.js";
 
 const router = express.Router();
 /**
@@ -108,7 +112,8 @@ const router = express.Router();
  *                   example: Server error
  */
 
-router.post("/invite-staff", authorize(USER_TYPES.HOTEL_ADMIN), inviteStaff)
+router.post("/invite-staff", authorize(USER_TYPES.HOTEL_ADMIN), inviteStaff);
+router.get("/invite-staff", authorize(USER_TYPES.HOTEL_ADMIN), getAllStaff);
+router.put("/invite-staff/:id", authorize(USER_TYPES.HOTEL_ADMIN), updateStaff);
 
-
-export default router
+export default router;

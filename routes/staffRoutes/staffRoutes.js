@@ -57,7 +57,7 @@ const router = express.Router();
  *                   example: Server error
  */
 
-router.post("/verify-staff", verifyStaffAccount);
+router.get("/verify-staff", verifyStaffAccount);
 
 /**
  * @swagger

@@ -67,14 +67,11 @@ export const createHotel = async (req, res) => {
     // ✅ Link admin to hotel
     hotel.adminIds.push(adminUser._id);
     await hotel.save();
-    const newHotelAdminDetail = new HotelAdminDetail(
-      {
-        hotelId: hotel._id,
-        userId:adminUser._id
-      }
-      
-    )
-    await newHotelAdminDetail.save()
+    const newHotelAdminDetail = new HotelAdminDetail({
+      hotelId: hotel._id,
+      userId: adminUser._id,
+    });
+    await newHotelAdminDetail.save();
     // ✅ Prepare and send email
     const mailSubject = "Regarding Hotel Creation";
     const htmlTemplate = createHotelTemplate(adminEmail, generatedPassword);
@@ -167,7 +164,7 @@ export const deleteHotel = async (req, res) => {
 
     // ✅ Delete the hotel
     await Hotel.findByIdAndDelete(hotelId);
-    await HotelAdminDetail.deleteMany({hotelId:{$in:hotelId}})
+    await HotelAdminDetail.deleteMany({ hotelId: { $in: hotelId } });
     return successResponse(res, {
       message: "Hotel deleted successfully",
       deletedHotelId: hotelId,
@@ -178,6 +175,54 @@ export const deleteHotel = async (req, res) => {
   }
 };
 
+// export const getHotel = async (req, res) => {
+//   try {
+//     const { skip, limit, searchTerm, page } = paginationHelper(req.query);
+
+//     const matchStage = {};
+//     if (searchTerm) {
+//       matchStage.$or = [
+//         { hotelName: { $regex: searchTerm, $options: "i" } },
+//         { city: { $regex: searchTerm, $options: "i" } },
+//         { state: { $regex: searchTerm, $options: "i" } },
+//       ];
+//     }
+
+//     const hotels = await Hotel.aggregate([
+//       { $match: matchStage },
+//       // {
+//       //   $project: {
+//       //     _id: 1,
+//       //     hotelName: 1,
+//       //     city: 1,
+//       //     state: 1,
+//       //   },
+//       // },
+//       { $skip: skip },
+//       { $limit: limit },
+//     ]);
+
+//     // ✅ Get total count for pagination
+//     const totalHotels = await Hotel.countDocuments(matchStage);
+
+//     return successResponse(
+//       res,
+//       {
+//         data: hotels,
+//         pagination: {
+//           total: totalHotels,
+//           page,
+//           limit,
+//           totalPages: Math.ceil(totalHotels / limit),
+//         },
+//       },
+//       200
+//     );
+//   } catch (error) {
+//     console.error("Error fetching hotels:", error);
+//     return errorResponse(res, { message: "Server error" }, 500, error);
+//   }
+// };
 
 export const getHotel = async (req, res) => {
   try {
@@ -194,14 +239,40 @@ export const getHotel = async (req, res) => {
 
     const hotels = await Hotel.aggregate([
       { $match: matchStage },
+
+      // 🔍 Join with Admin collection
+      {
+        $lookup: {
+          from: "users",
+          localField: "adminIds", // ✅ match your schema
+          foreignField: "_id",
+          as: "adminDetails",
+        },
+      },
+
+      // 🧩 Only include _id and email from the admin
       {
         $project: {
           _id: 1,
           hotelName: 1,
           city: 1,
           state: 1,
+          address1: 1,
+          address2: 1,
+          zipcode: 1,
+          country: 1,
+          phone: 1,
+          website: 1,
+          admin: {
+            $map: {
+              input: "$adminDetails",
+              as: "a",
+              in: { _id: "$$a._id", email: "$$a.email" },
+            },
+          },
         },
       },
+
       { $skip: skip },
       { $limit: limit },
     ]);

@@ -46,7 +46,7 @@ export const authorize = (userTypes) => {
       if (user.userType === USER_TYPES.HOTEL_ADMIN) {
         console.log("user.user._id ", user._id);
         const hotelDetail = await HotelAdminDetail.findOne({
-          adminId: { $in: [user._id] },
+          userId: { $in: [user._id] },
         });
         console.log("hotel ", hotelDetail);
         if (hotelDetail) {
