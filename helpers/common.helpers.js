@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 dotenv.config();
+
 export const successResponse = (res, data, statusCode = 200) => {
   return res.status(statusCode).json(data);
 };
@@ -13,21 +14,21 @@ export const errorResponse = (res, data, statusCode = 500, error = null) => {
   return res.status(statusCode).json(data);
 };
 
-export const generateJwtToken = (user, expireTime) => {
-  const options = {};
+// export const generateJwtToken = (user, expireTime) => {
+//   const options = {};
 
-  if (expireTime) {
-    options.expiresIn = expireTime; // only add expiresIn if provided
-  }
+//   if (expireTime) {
+//     options.expiresIn = expireTime; // only add expiresIn if provided
+//   }
 
-  const token = jwt.sign(
-    { id: user._id, email: user.email, role: user.type },
-    process.env.JWT_SECRET,
-    options
-  );
+//   const token = jwt.sign(
+//     { id: user._id, email: user.email, role: user.type },
+//     process.env.JWT_SECRET,
+//     options
+//   );
 
-  return token;
-};
+//   return token;
+// };
 
 export const generateDefaultPassword = () => {
   const length = 8;
@@ -39,4 +40,14 @@ export const generateDefaultPassword = () => {
     password += charset[randomIndex];
   }
   return password;
+};
+
+export const generateJwtToken = (user, expiresIn = "15m") => {
+  const payload = { id: user._id, role: user.userType, hotelId: user.hotelId };
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn });
+};
+
+export const generateRefreshToken = (user) => {
+  const payload = { id: user._id };
+  return jwt.sign(payload, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
 };

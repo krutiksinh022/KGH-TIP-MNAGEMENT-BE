@@ -1,185 +1,207 @@
-import {
-  errorResponse,
-  successResponse,
-} from "../../helpers/common.helpers.js";
 import Department from "../../models/department.model.js";
-import { createDepartmentValidator } from "../../validators/department.validators.js";
+import Hotel from "../../models/hotel.model.js";
+import { USER_TYPES } from "../../constants/common.constants.js";
+import {
+  successResponse,
+  errorResponse,
+} from "../../helpers/common.helpers.js";
 
+// 🟢 Create Department
 export const createDepartMent = async (req, resp) => {
+  console.log("🏨 Create Department request received", req.body, req.headers);
   try {
-    const { departmentName } = await createDepartmentValidator.validateAsync(
-      req.body
-    );
-    const hotelId = req.hotel?._id || req.user?.hotelId;
-    const existing = await Department.findOne({
-      hotelId,
-      departmentName: { $regex: new RegExp(`^${departmentName}$`, "i") },
-    });
-
-    if (existing) {
+    const user = req.user;
+    const hotelId =
+      req.headers["hotelid"] || req.body.hotelId || req.query.hotelId;
+    const { departmentName } = req.body;
+    console.log("🏨 Creating department for hotelId:", hotelId, departmentName);
+    if (!departmentName || !hotelId) {
       return errorResponse(
         resp,
-        { message: "Department name already exists for this hotel" },
+        { message: "departmentName and hotelId are required" },
         400
       );
     }
 
-    if (!hotelId) {
-      return errorResponse(
-        resp,
-        { message: "Hotel not found for this admin" },
-        404
-      );
+    if (
+      ![USER_TYPES.HotelAdmin, USER_TYPES.SuperAdmin].includes(user.userType)
+    ) {
+      return errorResponse(resp, { message: "Unauthorized" }, 403);
     }
 
-    // create department
-    const department = await Department.create({
-      departmentName,
-      hotelId,
-    });
+    const hotel = await Hotel.findById(hotelId);
+    if (!hotel) return errorResponse(resp, { message: "Hotel not found" }, 404);
 
-    return successResponse(
-      resp,
-      {
-        message: "Department created successfully",
-        departmentId: department._id,
-        department,
-      },
-      201
-    );
+    const existing = await Department.findOne({
+      hotelId,
+      departmentName: { $regex: new RegExp(`^${departmentName}$`, "i") },
+    });
+    if (existing)
+      return errorResponse(resp, { message: "Department already exists" }, 400);
+
+    const department = await Department.create({ departmentName, hotelId });
+
+    return successResponse(resp, {
+      message: "Department created successfully",
+      department,
+    });
   } catch (error) {
-    console.error("Error creating hotel:", error);
+    console.error("Error creating department:", error);
     return errorResponse(resp, { message: "Server error" }, 500, error);
   }
 };
 
-// ✅ Update Department
+// 🟡 Update Department
 export const updateDepartment = async (req, resp) => {
   try {
-    const { departmentId } = req.params;
-
-    // validate body
-    const { departmentName } = await createDepartmentValidator.validateAsync(
-      req.body
-    );
-
-    // get hotelId from logged-in hotel-admin
-    const hotelId = req.hotel?._id || req.user?.hotelId;
-    if (!hotelId) {
+    const user = req.user;
+    const { id } = req.params;
+    const { departmentName } = req.body;
+    const hotelId =
+      req.headers["hotelid"] || req.body.hotelId || req.query.hotelId;
+    console.log("🏨 Updating department:", id, departmentName, hotelId);
+    if (!departmentName)
       return errorResponse(
         resp,
-        { message: "Hotel not found for this admin" },
-        404
-      );
-    }
-
-    // check if department exists & belongs to hotel
-    const department = await Department.findOne({ _id: departmentId, hotelId });
-    if (!department) {
-      return errorResponse(resp, { message: "Department not found" }, 404);
-    }
-
-    // check uniqueness within the same hotel
-    const existing = await Department.findOne({
-      hotelId,
-      departmentName: { $regex: new RegExp(`^${departmentName}$`, "i") },
-      _id: { $ne: departmentId }, // exclude current department
-    });
-
-    if (existing) {
-      return errorResponse(
-        resp,
-        { message: "Department name already exists for this hotel" },
+        { message: "departmentName is required" },
         400
       );
+
+    const department = await Department.findById(id);
+    if (!department)
+      return errorResponse(resp, { message: "Department not found" }, 404);
+
+    // 🔐 Restrict hotel admin
+    if (
+      user.userType === USER_TYPES.HotelAdmin &&
+      department.hotelId.toString() !== hotelId
+    ) {
+      return errorResponse(
+        resp,
+        { message: "Unauthorized to edit this department" },
+        403
+      );
     }
 
-    // update department
     department.departmentName = departmentName;
     await department.save();
 
-    return successResponse(
-      resp,
-      {
-        message: "Department updated successfully",
-        departmentId: department._id,
-        department,
-      },
-      200
-    );
+    return successResponse(resp, {
+      message: "Department updated successfully",
+      department,
+    });
   } catch (error) {
     console.error("Error updating department:", error);
-
-    // Joi validation error
-    // if (error.isJoi) {
-    //   return errorResponse(resp, { message: error.details[0].message }, 400);
-    // }
-
     return errorResponse(resp, { message: "Server error" }, 500, error);
   }
 };
 
-export const deleteDepartment = async (req, resp) => {
-  try {
-    const { departmentId } = req.params;
-
-    const hotelId = req.hotel?._id || req.user?.hotelId;
-    if (!hotelId) {
-      return errorResponse(
-        resp,
-        { message: "Hotel not found for this admin" },
-        404
-      );
-    }
-
-    const department = await Department.findOneAndDelete({
-      _id: departmentId,
-      hotelId,
-    });
-    if (!department) {
-      return errorResponse(resp, { message: "Department not found" }, 404);
-    }
-
-    return successResponse(
-      resp,
-      {
-        message: "Department deleted successfully",
-        departmentId: department._id,
-      },
-      200
-    );
-  } catch (error) {
-    console.error("Error deleting department:", error);
-    return errorResponse(resp, { message: "Server error" }, 500, error);
-  }
-};
-
+// 🟢 Get All Departments
 export const getDepartments = async (req, resp) => {
   try {
-    const hotelId = req.hotel?._id || req.user?.hotelId;
-    if (!hotelId) {
+    console.log("🏨 Fetching departments", req.headers);
+    const user = req.user;
+    const hotelId =
+      req.headers["hotelid"] || req.body.hotelId || req.query.hotelId;
+
+    if (!hotelId)
+      return errorResponse(resp, { message: "hotelId is required" }, 400);
+
+    const hotel = await Hotel.findById(hotelId);
+    if (!hotel) return errorResponse(resp, { message: "Hotel not found" }, 404);
+
+    let departments = await Department.find({ hotelId });
+    console.log("🏨 Departments fetched:", departments);
+    // 🔐 Masking logic for Super Admin without access
+    if (
+      user.userType === USER_TYPES.SuperAdmin &&
+      !hotel.allowSuperAdminAccess
+    ) {
+      departments = departments.map((d) => ({
+        ...d.toObject(),
+        departmentName: "P***",
+      }));
+    }
+
+    return successResponse(resp, {
+      message: "Departments fetched successfully",
+      hotelAccess: hotel.allowSuperAdminAccess,
+      departments,
+    });
+  } catch (error) {
+    console.error("Error fetching departments:", error);
+    return errorResponse(resp, { message: "Server error" }, 500, error);
+  }
+};
+
+// 🟣 Get Department by ID
+export const getDepartmentById = async (req, resp) => {
+  try {
+    const user = req.user;
+    const { id } = req.params;
+    const hotelId =
+      req.headers["hotelid"] || req.body.hotelId || req.query.hotelId;
+
+    const department = await Department.findById(id).populate(
+      "hotelId",
+      "hotelName allowSuperAdminAccess"
+    );
+    if (!department)
+      return errorResponse(resp, { message: "Department not found" }, 404);
+
+    // 🔐 Restrict Hotel Admin
+    if (
+      user.userType === USER_TYPES.HotelAdmin &&
+      department.hotelId._id.toString() !== hotelId
+    ) {
+      return errorResponse(resp, { message: "Unauthorized access" }, 403);
+    }
+
+    // 🔐 Mask for Super Admin without access
+    if (
+      user.userType === USER_TYPES.SuperAdmin &&
+      !department.hotelId.allowSuperAdminAccess
+    ) {
+      department.departmentName = "P***";
+    }
+
+    return successResponse(resp, { message: "Department fetched", department });
+  } catch (error) {
+    console.error("Error getting department:", error);
+    return errorResponse(resp, { message: "Server error" }, 500, error);
+  }
+};
+
+// 🔴 Delete Department
+export const deleteDepartment = async (req, resp) => {
+  try {
+    const user = req.user;
+    const { id } = req.params;
+    const hotelId =
+      req.headers["hotelid"] || req.body.hotelId || req.query.hotelId;
+
+    const department = await Department.findById(id);
+    if (!department)
+      return errorResponse(resp, { message: "Department not found" }, 404);
+
+    // Restrict hotel admin
+    if (
+      user.userType === USER_TYPES.HotelAdmin &&
+      department.hotelId.toString() !== hotelId
+    ) {
       return errorResponse(
         resp,
-        { message: "Hotel not found for this admin" },
-        404
+        { message: "Unauthorized to delete this department" },
+        403
       );
     }
 
-    // Fetch only departmentName field
-    const departments = await Department.find({ hotelId }).select(
-      "departmentName"
-    );
-
-    return successResponse(
-      resp,
-      {
-        message: "Departments fetched successfully",
-        departments, // e.g. [ { _id: "...", departmentName: "Front Desk" }, ... ]
-      },
-      200
-    );
+    await Department.findByIdAndDelete(id);
+    return successResponse(resp, {
+      message: "Department deleted successfully",
+    });
   } catch (error) {
-    console.error("Error fetching departments:", error);
+    console.error("Error deleting department:", error);
     return errorResponse(resp, { message: "Server error" }, 500, error);
   }
 };

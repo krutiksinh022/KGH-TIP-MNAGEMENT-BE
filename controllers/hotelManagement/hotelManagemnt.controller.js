@@ -1,19 +1,18 @@
-// import Hotel from "../models/hotel.model.js";
-// import User from "../models/user.model.js";
-import Hotel from "../../models/hotel.model.js";
 import mongoose from "mongoose";
+import Hotel from "../../models/hotel.model.js";
+import User from "../../models/user.model.js";
+import HotelAdminDetail from "../../models/hotelAdminDetail.model.js";
 import {
   errorResponse,
-  generateDefaultPassword,
   successResponse,
+  generateDefaultPassword,
 } from "../../helpers/common.helpers.js";
 import { USER_TYPES } from "../../constants/common.constants.js";
-import User from "../../models/user.model.js";
 import { sendEmail } from "../../helpers/nodemail.helper.js";
 import { createHotelTemplate } from "../../MailTemplate/HotelMail.js";
-import HotelAdminDetail from "../../models/hotelAdminDetail.model.js";
 import { paginationHelper } from "../../helpers/pagination.helper.js";
 
+// ✅ Create Hotel (with multiple admins)
 export const createHotel = async (req, res) => {
   try {
     const {
@@ -26,23 +25,24 @@ export const createHotel = async (req, res) => {
       zipcode,
       country,
       phone,
-      adminEmail,
+      adminEmail = [], // can be array or string
+      allowSuperAdminAccess = true,
+      status = "Active",
     } = req.body;
 
-    // ✅ Check if email already exists
-    const existingUser = await User.findOne({ email: adminEmail });
-    if (existingUser) {
+    const adminEmails = Array.isArray(adminEmail)
+      ? adminEmail
+      : [adminEmail].filter(Boolean);
+
+    if (!adminEmails.length) {
       return errorResponse(
         res,
-        {
-          message: "Email is already registered. Please use a different email.",
-        },
+        { message: "At least one admin email required" },
         400
       );
     }
 
-    // ✅ Create Hotel
-    const hotel = new Hotel({
+    const hotel = await Hotel.create({
       hotelName,
       website,
       address1,
@@ -52,119 +52,137 @@ export const createHotel = async (req, res) => {
       zipcode,
       country,
       phone,
+      allowSuperAdminAccess,
+      status,
+      createdBy: req.user._id,
     });
+
+    const adminIds = [];
+
+    for (const email of adminEmails) {
+      let adminUser = await User.findOne({ email });
+
+      if (!adminUser) {
+        const password = generateDefaultPassword();
+        adminUser = await User.create({
+          email,
+          password,
+          userType: USER_TYPES.HotelAdmin,
+        });
+
+        await sendEmail(
+          email,
+          "Your Hotel Admin Account Details",
+          createHotelTemplate(email, password)
+        );
+      }
+
+      adminIds.push(adminUser._id);
+
+      await HotelAdminDetail.updateOne(
+        { hotelId: hotel._id, userId: adminUser._id },
+        { hotelId: hotel._id, userId: adminUser._id },
+        { upsert: true }
+      );
+    }
+
+    hotel.adminIds = adminIds;
     await hotel.save();
 
-    // ✅ Generate password & create admin user
-    const generatedPassword = generateDefaultPassword();
-    const adminUser = new User({
-      email: adminEmail,
-      password: generatedPassword,
-      userType: USER_TYPES.HOTEL_ADMIN,
-    });
-    await adminUser.save();
-
-    // ✅ Link admin to hotel
-    hotel.adminIds.push(adminUser._id);
-    await hotel.save();
-    const newHotelAdminDetail = new HotelAdminDetail({
-      hotelId: hotel._id,
-      userId: adminUser._id,
-    });
-    await newHotelAdminDetail.save();
-    // ✅ Prepare and send email
-    const mailSubject = "Regarding Hotel Creation";
-    const htmlTemplate = createHotelTemplate(adminEmail, generatedPassword);
-    await sendEmail(adminEmail, mailSubject, htmlTemplate);
-
-    // ✅ Success Response
     return successResponse(
       res,
       {
-        message: "Hotel and Admin created successfully",
-        hotelId: hotel._id,
-        adminId: adminUser._id,
+        message: "Hotel and admins created successfully",
+        hotel,
       },
       201
     );
   } catch (error) {
     console.error("Error creating hotel:", error);
+
+    if (error.code === 11000) {
+      const duplicateField = Object.keys(error.keyValue)[0];
+      return errorResponse(
+        res,
+        {
+          message: `Duplicate value for ${duplicateField}. It must be unique.`,
+        },
+        400
+      );
+    }
+
     return errorResponse(res, { message: "Server error" }, 500, error);
   }
 };
 
+// ✅ Update Hotel (can add/remove admins)
 export const updateHotel = async (req, res) => {
   try {
-    const { hotelId } = req.params; // hotelId comes from URL params
-    const {
-      hotelName,
-      website,
-      address1,
-      address2,
-      city,
-      state,
-      zipcode,
-      country,
-      phone,
-    } = req.body;
+    const { hotelId } = req.params;
+    const updateData = req.body;
 
-    // ✅ Validate hotelId
-    if (!hotelId) {
-      return errorResponse(res, { message: "Hotel ID is required" }, 400);
-    }
+    // ✅ Run schema validators (including enum check)
+    const hotel = await Hotel.findByIdAndUpdate(hotelId, updateData, {
+      new: true,
+      runValidators: true, // 👈 Ensures enum validation runs
+    });
 
-    // ✅ Find hotel by ID
-    const hotel = await Hotel.findById(hotelId);
     if (!hotel) {
       return errorResponse(res, { message: "Hotel not found" }, 404);
     }
 
-    // ✅ Overwrite all fields (even if empty)
-    hotel.hotelName = hotelName || "";
-    hotel.website = website || "";
-    hotel.address1 = address1 || "";
-    hotel.address2 = address2 || "";
-    hotel.city = city || "";
-    hotel.state = state || "";
-    hotel.zipcode = zipcode || "";
-    hotel.country = country || "";
-    hotel.phone = phone || "";
+    // ✅ If hotel deactivated — disable all users linked to it
+    if (updateData.status === "Inactive") {
+      await User.updateMany({ hotelId }, { $set: { isActive: false } });
+    }
 
-    await hotel.save();
+    // ✅ If hotel reactivated — enable them again
+    if (updateData.status === "Active") {
+      await User.updateMany({ hotelId }, { $set: { isActive: true } });
+    }
 
-    return successResponse(res, {
-      message: "Hotel details updated successfully",
-      hotel,
-    });
+    return successResponse(
+      res,
+      { message: "Hotel updated successfully", hotel },
+      200
+    );
   } catch (error) {
     console.error("Error updating hotel:", error);
+
+    // ✅ Handle invalid enum or duplicate field errors gracefully
+    if (error.name === "ValidationError") {
+      return errorResponse(res, { message: error.message }, 400);
+    }
+
+    if (error.code === 11000) {
+      const duplicateField = Object.keys(error.keyValue)[0];
+      return errorResponse(
+        res,
+        {
+          message: `Duplicate value for ${duplicateField}. It must be unique.`,
+        },
+        400
+      );
+    }
+
     return errorResponse(res, { message: "Server error" }, 500, error);
   }
 };
 
+// ✅ Delete Hotel
 export const deleteHotel = async (req, res) => {
   try {
     const { hotelId } = req.params;
 
-    // ✅ Validate hotelId
-    if (!hotelId) {
-      return errorResponse(res, { message: "Hotel ID is required" }, 400);
-    }
-
-    // ✅ Find the hotel
     const hotel = await Hotel.findById(hotelId);
-    if (!hotel) {
-      return errorResponse(res, { message: "Hotel not found" }, 404);
+    if (!hotel) return errorResponse(res, { message: "Hotel not found" }, 404);
+
+    if (hotel.adminIds.length > 0) {
+      await HotelAdminDetail.deleteMany({ hotelId });
     }
 
-    // ✅ Optional: Remove associated admin users (if needed)
-    if (hotel.adminIds && hotel.adminIds.length > 0) {
-      await User.deleteMany({ _id: { $in: hotel.adminIds } });
-    }
-
-    // ✅ Delete the hotel
     await Hotel.findByIdAndDelete(hotelId);
-    await HotelAdminDetail.deleteMany({ hotelId: { $in: hotelId } });
+
     return successResponse(res, {
       message: "Hotel deleted successfully",
       deletedHotelId: hotelId,
@@ -175,55 +193,7 @@ export const deleteHotel = async (req, res) => {
   }
 };
 
-// export const getHotel = async (req, res) => {
-//   try {
-//     const { skip, limit, searchTerm, page } = paginationHelper(req.query);
-
-//     const matchStage = {};
-//     if (searchTerm) {
-//       matchStage.$or = [
-//         { hotelName: { $regex: searchTerm, $options: "i" } },
-//         { city: { $regex: searchTerm, $options: "i" } },
-//         { state: { $regex: searchTerm, $options: "i" } },
-//       ];
-//     }
-
-//     const hotels = await Hotel.aggregate([
-//       { $match: matchStage },
-//       // {
-//       //   $project: {
-//       //     _id: 1,
-//       //     hotelName: 1,
-//       //     city: 1,
-//       //     state: 1,
-//       //   },
-//       // },
-//       { $skip: skip },
-//       { $limit: limit },
-//     ]);
-
-//     // ✅ Get total count for pagination
-//     const totalHotels = await Hotel.countDocuments(matchStage);
-
-//     return successResponse(
-//       res,
-//       {
-//         data: hotels,
-//         pagination: {
-//           total: totalHotels,
-//           page,
-//           limit,
-//           totalPages: Math.ceil(totalHotels / limit),
-//         },
-//       },
-//       200
-//     );
-//   } catch (error) {
-//     console.error("Error fetching hotels:", error);
-//     return errorResponse(res, { message: "Server error" }, 500, error);
-//   }
-// };
-
+// ✅ Get All Hotels
 export const getHotel = async (req, res) => {
   try {
     const { skip, limit, searchTerm, page } = paginationHelper(req.query);
@@ -239,134 +209,63 @@ export const getHotel = async (req, res) => {
 
     const hotels = await Hotel.aggregate([
       { $match: matchStage },
-
-      // 🔍 Join with Admin collection
       {
         $lookup: {
           from: "users",
-          localField: "adminIds", // ✅ match your schema
+          localField: "adminIds",
           foreignField: "_id",
           as: "adminDetails",
         },
       },
-
-      // 🧩 Only include _id and email from the admin
       {
         $project: {
-          _id: 1,
           hotelName: 1,
           city: 1,
           state: 1,
-          address1: 1,
-          address2: 1,
-          zipcode: 1,
           country: 1,
-          phone: 1,
           website: 1,
-          admin: {
-            $map: {
-              input: "$adminDetails",
-              as: "a",
-              in: { _id: "$$a._id", email: "$$a.email" },
-            },
-          },
+          phone: 1,
+          allowSuperAdminAccess: 1,
+          status: 1,
+          adminDetails: { _id: 1, email: 1 },
         },
       },
-
       { $skip: skip },
       { $limit: limit },
     ]);
 
-    // ✅ Get total count for pagination
     const totalHotels = await Hotel.countDocuments(matchStage);
 
-    return successResponse(
-      res,
-      {
-        data: hotels,
-        pagination: {
-          total: totalHotels,
-          page,
-          limit,
-          totalPages: Math.ceil(totalHotels / limit),
-        },
+    return successResponse(res, {
+      data: hotels,
+      pagination: {
+        total: totalHotels,
+        page,
+        limit,
+        totalPages: Math.ceil(totalHotels / limit),
       },
-      200
-    );
+    });
   } catch (error) {
     console.error("Error fetching hotels:", error);
     return errorResponse(res, { message: "Server error" }, 500, error);
   }
 };
 
+// ✅ Get Single Hotel
 export const getHotelById = async (req, res) => {
   try {
     const { hotelId } = req.params;
 
-    if (!hotelId) {
-      return errorResponse(res, { message: "Hotel ID is required" }, 400);
-    }
+    const hotel = await Hotel.findById(hotelId)
+      .populate("adminIds", "email userType")
+      .lean();
 
-    const hotelDetails = await Hotel.aggregate([
-      {
-        $match: { _id: new mongoose.Types.ObjectId(hotelId) },
-      },
-      {
-        $lookup: {
-          from: "hoteladmindetails", // collection name in MongoDB (check in DB)
-          localField: "_id",
-          foreignField: "hotelId",
-          as: "adminDetails",
-        },
-      },
-      { $unwind: { path: "$adminDetails", preserveNullAndEmptyArrays: true } },
-      {
-        $lookup: {
-          from: "users",
-          localField: "adminDetails.userId",
-          foreignField: "_id",
-          as: "adminUser",
-        },
-      },
-      { $unwind: { path: "$adminUser", preserveNullAndEmptyArrays: true } },
-      {
-        $group: {
-          _id: "$_id",
-          hotelName: { $first: "$hotelName" },
-          website: { $first: "$website" },
-          address1: { $first: "$address1" },
-          address2: { $first: "$address2" },
-          city: { $first: "$city" },
-          state: { $first: "$state" },
-          zipcode: { $first: "$zipcode" },
-          country: { $first: "$country" },
-          phone: { $first: "$phone" },
-          createdAt: { $first: "$createdAt" },
-          updatedAt: { $first: "$updatedAt" },
-          admins: {
-            $push: {
-              _id: "$adminUser._id",
-              email: "$adminUser.email",
-              userType: "$adminUser.userType",
-              createdAt: "$adminUser.createdAt",
-            },
-          },
-        },
-      },
-    ]);
+    if (!hotel) return errorResponse(res, { message: "Hotel not found" }, 404);
 
-    if (!hotelDetails.length) {
-      return errorResponse(res, { message: "Hotel not found" }, 404);
-    }
-
-    return successResponse(
-      res,
-      {
-        message: "Hotel details fetched successfully",
-        hotel: hotelDetails[0],
-      },
-      200
-    );
+    return successResponse(res, {
+      message: "Hotel details fetched successfully",
+      hotel,
+    });
   } catch (error) {
     console.error("Error fetching hotel by ID:", error);
     return errorResponse(res, { message: "Server error" }, 500, error);

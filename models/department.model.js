@@ -11,6 +11,10 @@ const departmentSchema = new mongoose.Schema(
       ref: "Hotel", // Reference to Hotel model
       required: true,
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 );

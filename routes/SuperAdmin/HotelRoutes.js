@@ -6,7 +6,7 @@ import {
   getHotelById,
   updateHotel,
 } from "../../controllers/hotelManagement/hotelManagemnt.controller.js";
-import { authorize } from "../../middleware/auth.middleware.js";
+import { authorizeBasic } from "../../middleware/auth.middleware.js";
 import { USER_TYPES } from "../../constants/common.constants.js";
 
 const router = express.Router();
@@ -108,7 +108,7 @@ const router = express.Router();
  *                   type: string
  *                   example: Missing required fields
  *       401:
- *         description: Unauthorized - Missing or invalid token
+ *         description: UnauthorizeBasicd - Missing or invalid token
  *         content:
  *           application/json:
  *             schema:
@@ -116,7 +116,7 @@ const router = express.Router();
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Unauthorized
+ *                   example: UnauthorizeBasicd
  *       500:
  *         description: Internal Server Error
  *         content:
@@ -131,10 +131,9 @@ const router = express.Router();
 
 router.post(
   "/hotel-management",
-  authorize([USER_TYPES.SUPER_ADMIN]),
+  authorizeBasic([USER_TYPES.SuperAdmin]),
   createHotel
 );
-
 /**
  * @swagger
  * /super-admin/hotel-management/{hotelId}:
@@ -225,7 +224,7 @@ router.post(
  *                   type: string
  *                   example: Hotel ID is required
  *       401:
- *         description: Unauthorized - Missing or invalid token
+ *         description: UnauthorizeBasicd - Missing or invalid token
  *         content:
  *           application/json:
  *             schema:
@@ -233,7 +232,7 @@ router.post(
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Unauthorized
+ *                   example: UnauthorizeBasicd
  *       404:
  *         description: Hotel not found
  *         content:
@@ -257,7 +256,7 @@ router.post(
  */
 router.put(
   "/hotel-management/:hotelId",
-  authorize(USER_TYPES.SUPER_ADMIN),
+  authorizeBasic([USER_TYPES.SuperAdmin]),
   updateHotel
 );
 
@@ -302,7 +301,7 @@ router.put(
  *                   type: string
  *                   example: Hotel ID is required
  *       401:
- *         description: Unauthorized - Missing or invalid token
+ *         description: UnauthorizeBasicd - Missing or invalid token
  *         content:
  *           application/json:
  *             schema:
@@ -310,7 +309,7 @@ router.put(
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Unauthorized
+ *                   example: UnauthorizeBasicd
  *       404:
  *         description: Hotel not found
  *         content:
@@ -334,7 +333,7 @@ router.put(
  */
 router.delete(
   "/hotel-management/:hotelId",
-  authorize([USER_TYPES.SUPER_ADMIN]),
+  authorizeBasic([USER_TYPES.SuperAdmin]),
   deleteHotel
 );
 
@@ -407,7 +406,7 @@ router.delete(
  *                       type: integer
  *                       example: 3
  *       401:
- *         description: Unauthorized - Missing or invalid token
+ *         description: UnauthorizeBasicd - Missing or invalid token
  *         content:
  *           application/json:
  *             schema:
@@ -415,7 +414,7 @@ router.delete(
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Unauthorized
+ *                   example: UnauthorizeBasicd
  *       500:
  *         description: Internal Server Error
  *         content:
@@ -428,7 +427,11 @@ router.delete(
  *                   example: Server error
  */
 
-router.get("/hotel-management", authorize([USER_TYPES.SUPER_ADMIN]), getHotel);
+router.get(
+  "/hotel-management",
+  authorizeBasic([USER_TYPES.SuperAdmin]),
+  getHotel
+);
 
 /**
  * @swagger
@@ -525,7 +528,7 @@ router.get("/hotel-management", authorize([USER_TYPES.SUPER_ADMIN]), getHotel);
  *                   type: string
  *                   example: Hotel ID is required
  *       401:
- *         description: Unauthorized - Missing or invalid token
+ *         description: UnauthorizeBasicd - Missing or invalid token
  *         content:
  *           application/json:
  *             schema:
@@ -533,7 +536,7 @@ router.get("/hotel-management", authorize([USER_TYPES.SUPER_ADMIN]), getHotel);
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Unauthorized
+ *                   example: UnauthorizeBasicd
  *       404:
  *         description: Hotel not found
  *         content:
@@ -557,7 +560,7 @@ router.get("/hotel-management", authorize([USER_TYPES.SUPER_ADMIN]), getHotel);
  */
 router.get(
   "/hotel-management/:hotelId",
-  authorize([USER_TYPES.SUPER_ADMIN]),
+  authorizeBasic([USER_TYPES.SuperAdmin]),
   getHotelById
 );
 export default router;

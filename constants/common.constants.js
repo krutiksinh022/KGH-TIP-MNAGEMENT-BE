@@ -1,8 +1,9 @@
 export const USER_TYPES = {
-  SUPER_ADMIN: "Super Admin",
-  HOTEL_ADMIN: "Hotel Admin",
+  SuperAdmin: "Super Admin",
+  HotelAdmin: "Hotel Admin",
   Staff: "Staff",
 };
+
 export const HOTEL_STAFF_ENROLLMENT = {
   PENDING: "Pending",
   APPROVE: "Approved",

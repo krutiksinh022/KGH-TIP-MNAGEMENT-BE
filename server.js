@@ -6,6 +6,7 @@ import swaggerUi from "swagger-ui-express";
 import { swaggerOptions } from "./swagger.js";
 import cors from "cors";
 import "./config/connectDB.js";
+import cookieParser from "cookie-parser";
 dotenv.config();
 const app = express();
 app.use(cors());
@@ -16,7 +17,7 @@ app.use(
     credentials: true, // Note: This will not work with "*" as origin. See explanation below.
   })
 );
-
+app.use(cookieParser());
 app.use("", router);
 
 const specs = swaggerJSDoc(swaggerOptions);

@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const HotelAdminDetailSchema= new mongoose.Schema(
+const HotelAdminDetailSchema = new mongoose.Schema(
   {
     hotelId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -12,9 +12,15 @@ const HotelAdminDetailSchema= new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    selectedHotelId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Hotel",
+      default: null,
+    },
+    selectedHotelName: { type: String, default: null },
   },
   {
-    timestamps: true, 
+    timestamps: true,
   }
 );
 

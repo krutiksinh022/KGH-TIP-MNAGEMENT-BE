@@ -2,6 +2,7 @@ import { USER_TYPES } from "../../constants/common.constants.js";
 import {
   errorResponse,
   generateJwtToken,
+  generateRefreshToken,
   successResponse,
 } from "../../helpers/common.helpers.js";
 import { sendEmail } from "../../helpers/nodemail.helper.js";
@@ -14,39 +15,60 @@ import {
   resetPasswordValidator,
   verifyOtpValidator,
 } from "../../validators/auth.validators.js";
+import jwt from "jsonwebtoken";
 
 export const login = async (req, resp) => {
   try {
-    const result = await loginValidator.validateAsync(req.body);
-    const { email, password } = result;
-    console.log(email, password);
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const { email, password } = req.body;
+    const user = await User.findOne({ email: email.toLowerCase() }).populate(
+      "hotelId",
+      "status"
+    );
 
     if (!user) {
+      return errorResponse(resp, { message: "User not found" }, 404);
+    }
+    // ✅ If the user account itself is inactive
+    if (!user.isActive) {
+      return errorResponse(resp, { message: "Your account is inactive" }, 403);
+    }
+
+    // ✅ If hotel is inactive (for hotel admins or staff)
+    if (
+      (user.userType === USER_TYPES.HotelAdmin ||
+        user.userType === USER_TYPES.Staff) &&
+      user.hotelId &&
+      user.hotelId.status === "Inactive"
+    ) {
       return errorResponse(
         resp,
-        { success: false, message: "User not found" },
-        404
+        { message: "This hotel is inactive. Access denied." },
+        403
       );
     }
-    if (user.userType == USER_TYPES.Staff && !user.isEmailVerified) {
-      return errorResponse(
-        resp,
-        { message: "Email verification is pending please verify it" },
-        401
-      );
+
+    if (user.userType === USER_TYPES.Staff && !user.isEmailVerified) {
+      return errorResponse(resp, { message: "Email not verified" }, 401);
     }
+
     const isMatch = await user.isValidPassword(password);
     if (!isMatch) {
-      return errorResponse(
-        resp,
-        { success: false, message: "Invalid credentials" },
-        401
-      );
+      return errorResponse(resp, { message: "Invalid credentials" }, 401);
     }
-    const token = generateJwtToken(user, "1h");
-    user.jwtToken = token;
+
+    const accessToken = generateJwtToken(user, "15m");
+    const refreshToken = generateRefreshToken(user);
+
+    user.refreshToken = refreshToken;
     await user.save();
+
+    resp.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
     const userData = {
       _id: user._id,
       name: user.name,
@@ -57,51 +79,75 @@ export const login = async (req, resp) => {
     return resp.status(200).json({
       success: true,
       message: "Login successful",
-      token,
+      token: accessToken,
       data: userData,
     });
   } catch (error) {
-    console.log("Error in login controller:", error);
-    errorResponse(
-      resp,
-      { success: false, message: "Internal Server Error" },
-      500,
-      error
-    );
+    console.error("Error in login:", error);
+    return errorResponse(resp, { message: "Internal Server Error" }, 500);
+  }
+};
+export const refreshAccessToken = async (req, resp) => {
+  try {
+    const token = req.cookies.refreshToken;
+    if (!token) {
+      return errorResponse(resp, { message: "No refresh token found" }, 401);
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user || user.refreshToken !== token) {
+      return errorResponse(resp, { message: "Invalid refresh token" }, 403);
+    }
+
+    const newAccessToken = generateJwtToken(user, "15m");
+    const newRefreshToken = generateRefreshToken(user);
+
+    user.refreshToken = newRefreshToken;
+    await user.save();
+
+    resp.cookie("refreshToken", newRefreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return resp.status(200).json({
+      success: true,
+      accessToken: newAccessToken,
+    });
+  } catch (error) {
+    console.error("Error refreshing token:", error);
+    return errorResponse(resp, { message: "Invalid or expired token" }, 401);
   }
 };
 
 export const logOut = async (req, resp) => {
   try {
-    console.log("Logout request received");
     const userId = req.userId;
     if (!userId) {
-      return errorResponse(
-        resp,
-        { success: false, message: "Unauthorized" },
-        401
-      );
+      return errorResponse(resp, { message: "Unauthorized" }, 401);
     }
+
     const user = await User.findById(userId);
     if (!user) {
-      return errorResponse(
-        resp,
-        { success: false, message: "User not found" },
-        404
-      );
+      return errorResponse(resp, { message: "User not found" }, 404);
     }
-    user.jwtToken = null; // Clear the JWT token
+
+    user.refreshToken = null;
     await user.save();
-    return resp
-      .status(200)
-      .json({ success: true, message: "Logout successful" });
+
+    resp.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
+
+    return successResponse(resp, { message: "Logout successful" }, 200);
   } catch (error) {
-    errorResponse(
-      resp,
-      { success: false, message: "Internal Server Error" },
-      500,
-      error
-    );
+    console.error("Error in logout:", error);
+    return errorResponse(resp, { message: "Internal Server Error" }, 500);
   }
 };
 

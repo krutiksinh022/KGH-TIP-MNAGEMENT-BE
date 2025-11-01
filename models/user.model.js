@@ -1,52 +1,53 @@
 import mongoose from "mongoose";
-import bcrypt from "bcrypt"
+import bcrypt from "bcrypt";
 import { USER_TYPES } from "../constants/common.constants.js";
 
-const userSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        trim: true,
+const userSchema = new mongoose.Schema(
+  {
+    name: { type: String, trim: true },
+    email: { type: String, required: true, trim: true },
+    password: { type: String, required: true },
+    userType: { type: String, enum: Object.values(USER_TYPES) },
+    jwtToken: { type: String, default: null },
+    isPasswordChange: { type: Boolean, default: false },
+    isEmailVerified: { type: Boolean, default: false },
+    refreshToken: { type: String, default: null },
+
+    // ✅ new fields
+    hotelId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Hotel",
+      default: null,
     },
-    email: {
-        type: String,
-        required: true,
-        trim: true,
+    isActive: {
+      type: Boolean,
+      default: true,
     },
-    password: {
-        type: String,
-        required: true,
+    selectedHotelId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Hotel",
+      default: null,
     },
-    userType: {
-        type: String,
-        enum: Object.values(USER_TYPES)
-    },
-    jwtToken:{
-        type: String,
-        default: null
-    },
-    isPasswordChange:{
-        type: Boolean,
-        default: false
-    },
-    isEmailVerified:{
-        type:Boolean,
-        default:false,
+    selectedHotelName: { type: String, default: null },
+  },
+  { timestamps: true }
+);
+
+userSchema.pre("save", async function (next) {
+  try {
+    if (this.isModified("password")) {
+      const salt = await bcrypt.genSalt(10);
+      this.password = await bcrypt.hash(this.password, salt);
     }
-}, { timestamps: true }); 
-userSchema.pre('save', async function (next) {
-    try {
-        if (this.isModified('password')) {
-            const salt = await bcrypt.genSalt(10);
-            this.password = await bcrypt.hash(this.password, salt);
-        }
-        next();
-    } catch (error) {
-        next(error);
-    }
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
 userSchema.methods.isValidPassword = async function (password) {
-    return await bcrypt.compare(password, this.password);
+  return await bcrypt.compare(password, this.password);
 };
-const User = mongoose.model('User', userSchema);
+
+const User = mongoose.model("User", userSchema);
 export default User;

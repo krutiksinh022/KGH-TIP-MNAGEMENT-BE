@@ -1,7 +1,12 @@
 import express from "express";
 import { authorize } from "../../middleware/auth.middleware.js";
 import { USER_TYPES } from "../../constants/common.constants.js";
-import { createDepartMent, deleteDepartment, getDepartments, updateDepartment } from "../../controllers/departmentManagement/department.controller.js";
+import {
+  createDepartMent,
+  deleteDepartment,
+  getDepartments,
+  updateDepartment,
+} from "../../controllers/departmentManagement/department.controller.js";
 
 const router = express.Router();
 /**
@@ -78,7 +83,11 @@ const router = express.Router();
  *                   example: Server error
  */
 
-router.post("/department", authorize(USER_TYPES.HOTEL_ADMIN), createDepartMent);
+router.post(
+  "/department",
+  authorize([USER_TYPES.SuperAdmin, USER_TYPES.HotelAdmin]),
+  createDepartMent
+);
 
 /**
  * @swagger
@@ -164,8 +173,8 @@ router.post("/department", authorize(USER_TYPES.HOTEL_ADMIN), createDepartMent);
  *                   example: Server error
  */
 router.put(
-  "/department/:departmentId",
-  authorize(USER_TYPES.HOTEL_ADMIN),
+  "/department/:id",
+  authorize([USER_TYPES.SuperAdmin, USER_TYPES.HotelAdmin]),
   updateDepartment
 );
 
@@ -228,8 +237,8 @@ router.put(
  *                   example: Server error
  */
 router.delete(
-  "/department/:departmentId",
-  authorize(USER_TYPES.HOTEL_ADMIN),
+  "/department/:id",
+  authorize([USER_TYPES.SuperAdmin, USER_TYPES.HotelAdmin]),
   deleteDepartment
 );
 
@@ -309,7 +318,10 @@ router.delete(
  *       500:
  *         description: Server error
  */
-router.get("/department", authorize(USER_TYPES.HOTEL_ADMIN), getDepartments);
-
+router.get(
+  "/department",
+  authorize([USER_TYPES.SuperAdmin, USER_TYPES.HotelAdmin]),
+  getDepartments
+);
 
 export default router;

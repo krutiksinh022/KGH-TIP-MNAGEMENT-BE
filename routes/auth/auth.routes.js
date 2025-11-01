@@ -4,6 +4,7 @@ import {
   forgotPassword,
   login,
   logOut,
+  refreshAccessToken,
   resetPassword,
   verifyOtp,
 } from "../../controllers/auth/auth.controller.js";
@@ -321,5 +322,7 @@ router.post("/verify", verifyOtp);
  *                   example: ["Email and newPassword are required"]
  */
 router.post("/reset-passWord", resetPassword);
+
+router.post("/refresh-token", refreshAccessToken);
 
 export default router;
