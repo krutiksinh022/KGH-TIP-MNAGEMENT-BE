@@ -6,7 +6,7 @@ import {
   REGISTERED,
 } from "../constants/common.constants.js";
 
-const staffDetail = new mongoose.Schema(
+const staffDetailSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -30,8 +30,8 @@ const staffDetail = new mongoose.Schema(
     employmentType: {
       type: String,
       enum: [CONTRACTOR, DIRECT_HIRE],
-      required: true,
       default: CONTRACTOR,
+      required: true,
     },
     department: {
       type: mongoose.Schema.Types.ObjectId,
@@ -57,17 +57,40 @@ const staffDetail = new mongoose.Schema(
       type: String,
       required: true,
     },
-    HotelId: [
+    hotelIds: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Hotel",
         required: true,
       },
     ],
+    // ✅ Optional fields for better tracking
+    position: {
+      type: String,
+      trim: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 );
 
-const StaffDetails = mongoose.model("StaffDetail", staffDetail);
+// 🧠 Middleware to prevent staff login if hotel is inactive
+staffDetailSchema.statics.canStaffLogin = async function (userId) {
+  const staff = await this.findOne({ userId }).populate("hotelIds");
 
-export default StaffDetails;
+  if (!staff) return false;
+
+  // Check if at least one active hotel exists
+  const hasActiveHotel = staff.hotelIds.some(
+    (hotel) => hotel.isActive === true
+  );
+
+  return hasActiveHotel;
+};
+
+const StaffDetail = mongoose.model("StaffDetail", staffDetailSchema);
+
+export default StaffDetail;

@@ -16,7 +16,7 @@ router.use("/v1", hotelSwitchRoutes);
 
 //hotel-admin
 router.use("/v2", departmentRoutes);
-router.use("/hotel-admin", staffRoutes);
+router.use("/v2", staffRoutes);
 
 //staff-detail
 router.use("/staff", staffManagement);

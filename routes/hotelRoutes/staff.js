@@ -3,7 +3,9 @@ import { authorize } from "../../middleware/auth.middleware.js";
 import { USER_TYPES } from "../../constants/common.constants.js";
 import {
   getAllStaff,
+  getStaffById,
   inviteStaff,
+  revokeStaffInvite,
   updateStaff,
 } from "../../controllers/StaffManagement/staff.controller.js";
 
@@ -112,8 +114,30 @@ const router = express.Router();
  *                   example: Server error
  */
 
-router.post("/invite-staff", authorize(USER_TYPES.HOTEL_ADMIN), inviteStaff);
-router.get("/invite-staff", authorize(USER_TYPES.HOTEL_ADMIN), getAllStaff);
-router.put("/invite-staff/:id", authorize(USER_TYPES.HOTEL_ADMIN), updateStaff);
+router.post(
+  "/invite-staff",
+  authorize([USER_TYPES.SuperAdmin, USER_TYPES.HotelAdmin]),
+  inviteStaff
+);
+router.get(
+  "/invite-staff",
+  authorize([USER_TYPES.SuperAdmin, USER_TYPES.HotelAdmin]),
+  getAllStaff
+);
+router.get(
+  "/invite-staff/:staffId",
+  authorize([USER_TYPES.SuperAdmin, USER_TYPES.HotelAdmin]),
+  getStaffById
+);
+router.post(
+  "/invite-staff/:staffId",
+  authorize([USER_TYPES.SuperAdmin, USER_TYPES.HotelAdmin]),
+  revokeStaffInvite
+);
+router.put(
+  "/invite-staff/:id",
+  authorize([USER_TYPES.SuperAdmin, USER_TYPES.HotelAdmin]),
+  updateStaff
+);
 
 export default router;
