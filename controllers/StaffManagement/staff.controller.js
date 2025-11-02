@@ -13,6 +13,7 @@ import User from "../../models/user.model.js";
 import Hotel from "../../models/hotel.model.js"; // ✅ Add this import
 import { inviteStaffValidator } from "../../validators/staff.validators.js";
 import mongoose from "mongoose";
+import QRCode from "qrcode";
 
 // ✅ Invite new staff
 export const inviteStaff = async (req, resp) => {
@@ -28,24 +29,18 @@ export const inviteStaff = async (req, resp) => {
     } = result;
 
     const invitedBy = req.user._id;
-    const hotelId = req.hotelId; // ✅ correct hotelId from header
+    const hotelId = req.hotelId; // ✅ From header
 
-    // Check if hotelId exists (for admin)
     if (!hotelId) {
       return errorResponse(resp, { message: "Hotel ID is required" }, 400);
     }
 
-    // Validate hotel exists and is active
     const hotel = await Hotel.findById(hotelId);
-    if (!hotel) {
-      return errorResponse(resp, { message: "Hotel not found" }, 404);
-    }
-
-    if (hotel.status == "Inactive") {
+    if (!hotel) return errorResponse(resp, { message: "Hotel not found" }, 404);
+    if (hotel.status === "Inactive")
       return errorResponse(resp, { message: "Hotel is inactive" }, 403);
-    }
 
-    // Check existing user
+    // 🧩 Prevent duplicate users
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return errorResponse(
@@ -55,9 +50,8 @@ export const inviteStaff = async (req, resp) => {
       );
     }
 
-    // const password = generateDefaultPassword();
+    // Create base user
     const password = "Admin@123";
-
     const newUser = new User({
       name: firstName,
       email,
@@ -68,6 +62,13 @@ export const inviteStaff = async (req, resp) => {
 
     const token = generateJwtToken(newUser);
 
+    // ✅ Generate public tip link
+    const tipLink = `${process.env.FRONTEND_URL}/tip/${newUser._id}`;
+
+    // ✅ Generate QR code (base64)
+    const qrCode = await QRCode.toDataURL(tipLink);
+
+    // ✅ Create staff details
     const newStaff = new StaffDetails({
       userId: newUser._id,
       invitedBy,
@@ -79,13 +80,15 @@ export const inviteStaff = async (req, resp) => {
       lastName,
       hotelIds: [hotelId],
       token,
+      tipLink,
+      qrCode,
     });
 
     await newStaff.save();
 
     console.log("✅ New Staff Created:", firstName, lastName, email);
 
-    // Send email
+    // 📧 Send Invitation Email
     const emailHtml = createStaffInviteTemplate(
       firstName,
       lastName,
@@ -101,6 +104,8 @@ export const inviteStaff = async (req, resp) => {
       message: "Staff invited successfully",
       staffId: newStaff._id,
       userId: newUser._id,
+      tipLink: tipLink,
+      qrCode: qrCode,
     });
   } catch (error) {
     console.error("❌ Invite Staff Error:", error);
@@ -151,6 +156,8 @@ export const getAllStaff = async (req, resp) => {
           status: 1,
           createdAt: 1,
           updatedAt: 1,
+          qrCode: 1,
+          tipLink: 1,
           "department._id": "$departmentInfo._id",
           "department.name": "$departmentInfo.departmentName",
           "userId._id": "$userInfo._id",
@@ -226,6 +233,8 @@ export const getStaffById = async (req, resp) => {
           status: 1,
           createdAt: 1,
           updatedAt: 1,
+          qrCode: 1,
+          tipLink: 1,
           "department._id": "$departmentInfo._id",
           "department.name": "$departmentInfo.departmentName",
           "userId._id": "$userInfo._id",

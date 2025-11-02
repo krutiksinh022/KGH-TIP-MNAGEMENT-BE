@@ -64,7 +64,6 @@ const staffDetailSchema = new mongoose.Schema(
         required: true,
       },
     ],
-    // ✅ Optional fields for better tracking
     position: {
       type: String,
       trim: true,
@@ -73,24 +72,38 @@ const staffDetailSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    // 🧠 Added fields for Tip System
+    qrCode: {
+      type: String, // base64 or image URL
+    },
+    tipLink: {
+      type: String, // public tip URL (e.g. https://yourdomain.com/tip/:staffId)
+    },
+    totalTips: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );
 
-// 🧠 Middleware to prevent staff login if hotel is inactive
+// ✅ Middleware / static method to check if staff can login
 staffDetailSchema.statics.canStaffLogin = async function (userId) {
   const staff = await this.findOne({ userId }).populate("hotelIds");
 
   if (!staff) return false;
 
-  // Check if at least one active hotel exists
+  // staff itself inactive
+  if (!staff.isActive) return false;
+
+  // all hotels inactive
   const hasActiveHotel = staff.hotelIds.some(
-    (hotel) => hotel.isActive === true
+    (hotel) => hotel?.isActive === true
   );
 
   return hasActiveHotel;
 };
 
 const StaffDetail = mongoose.model("StaffDetail", staffDetailSchema);
-
 export default StaffDetail;
