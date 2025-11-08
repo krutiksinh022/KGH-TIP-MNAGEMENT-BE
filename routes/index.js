@@ -6,6 +6,7 @@ import departmentRoutes from "../routes/hotelRoutes/department.js";
 import staffRoutes from "../routes/hotelRoutes/staff.js";
 import staffManagement from "../routes/staffRoutes/staffRoutes.js";
 import staffBankRoutes from "../routes/staffRoutes/staffBank.routes.js";
+import UserProfileRoutes from "../routes/userProfileRoutes/userProfile.Routes.js"
 const router = express.Router();
 
 router.use("/auth", authRoutes);
@@ -17,6 +18,7 @@ router.use("/v1", hotelSwitchRoutes);
 //hotel-admin
 router.use("/v2", departmentRoutes);
 router.use("/v2", staffRoutes);
+router.use("/v2", UserProfileRoutes);
 
 //staff-detail
 router.use("/staff", staffManagement);

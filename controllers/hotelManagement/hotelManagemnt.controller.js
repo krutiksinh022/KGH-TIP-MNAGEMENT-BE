@@ -12,7 +12,6 @@ import { sendEmail } from "../../helpers/nodemail.helper.js";
 import { createHotelTemplate } from "../../MailTemplate/HotelMail.js";
 import { paginationHelper } from "../../helpers/pagination.helper.js";
 
-// ✅ Create Hotel (with multiple admins)
 export const createHotel = async (req, res) => {
   try {
     const {
@@ -25,23 +24,20 @@ export const createHotel = async (req, res) => {
       zipcode,
       country,
       phone,
-      adminEmail = [], // can be array or string
+      admins = [], // array of { name, email }
       allowSuperAdminAccess = true,
       status = "Active",
     } = req.body;
 
-    const adminEmails = Array.isArray(adminEmail)
-      ? adminEmail
-      : [adminEmail].filter(Boolean);
-
-    if (!adminEmails.length) {
+    if (!Array.isArray(admins) || !admins.length) {
       return errorResponse(
         res,
-        { message: "At least one admin email required" },
+        { message: "At least one admin detail (name & email) is required" },
         400
       );
     }
 
+    // ✅ Create hotel first
     const hotel = await Hotel.create({
       hotelName,
       website,
@@ -59,22 +55,37 @@ export const createHotel = async (req, res) => {
 
     const adminIds = [];
 
-    for (const email of adminEmails) {
+    // ✅ Process each admin
+    for (const admin of admins) {
+      const { name, email } = admin;
+
+      if (!email) continue; // skip invalid ones
+
       let adminUser = await User.findOne({ email });
 
       if (!adminUser) {
         const password = generateDefaultPassword();
         adminUser = await User.create({
+          name: name?.trim() || null,
           email,
           password,
           userType: USER_TYPES.HotelAdmin,
+          hotelId: hotel._id,
+          isActive: true,
         });
 
+        // ✅ Send email with credentials
         await sendEmail(
           email,
           "Your Hotel Admin Account Details",
           createHotelTemplate(email, password)
         );
+      } else {
+        // ✅ Update existing user's name or hotel association if needed
+        adminUser.name = name || adminUser.name;
+        adminUser.hotelId = hotel._id;
+        adminUser.isActive = true;
+        await adminUser.save();
       }
 
       adminIds.push(adminUser._id);
@@ -86,13 +97,14 @@ export const createHotel = async (req, res) => {
       );
     }
 
+    // ✅ Link admin IDs to the hotel
     hotel.adminIds = adminIds;
     await hotel.save();
 
     return successResponse(
       res,
       {
-        message: "Hotel and admins created successfully",
+        message: "Hotel and admin users created successfully",
         hotel,
       },
       201
@@ -119,37 +131,135 @@ export const createHotel = async (req, res) => {
 export const updateHotel = async (req, res) => {
   try {
     const { hotelId } = req.params;
-    const updateData = req.body;
+    const {
+      hotelName,
+      website,
+      address1,
+      address2,
+      city,
+      state,
+      zipcode,
+      country,
+      phone,
+      status,
+      adminDetails = [],
+    } = req.body;
 
-    // ✅ Run schema validators (including enum check)
-    const hotel = await Hotel.findByIdAndUpdate(hotelId, updateData, {
-      new: true,
-      runValidators: true, // 👈 Ensures enum validation runs
-    });
-
+    // ✅ 1. Find the existing hotel
+    const hotel = await Hotel.findById(hotelId);
     if (!hotel) {
       return errorResponse(res, { message: "Hotel not found" }, 404);
     }
 
-    // ✅ If hotel deactivated — disable all users linked to it
-    if (updateData.status === "Inactive") {
-      await User.updateMany({ hotelId }, { $set: { isActive: false } });
+    // ✅ 2. Update hotel fields
+    hotel.hotelName = hotelName ?? hotel.hotelName;
+    hotel.website = website ?? hotel.website;
+    hotel.address1 = address1 ?? hotel.address1;
+    hotel.address2 = address2 ?? hotel.address2;
+    hotel.city = city ?? hotel.city;
+    hotel.state = state ?? hotel.state;
+    hotel.zipcode = zipcode ?? hotel.zipcode;
+    hotel.country = country ?? hotel.country;
+    hotel.phone = phone ?? hotel.phone;
+    hotel.status = status ?? hotel.status;
+
+    // ✅ 3. Handle Admins update
+    const existingAdmins = await HotelAdminDetail.find({ hotelId });
+    const existingUserIds = existingAdmins.map((a) => a.userId.toString());
+
+    const newAdminEmails = adminDetails.map((a) =>
+      a.email.toLowerCase().trim()
+    );
+    const newAdminNames = adminDetails.map((a) => a.name.trim());
+
+    // ✅ 3.1 Remove admins that no longer exist in frontend
+    const adminsToRemove = existingAdmins.filter(
+      (a) => !newAdminEmails.includes(a.email?.toLowerCase())
+    );
+
+    for (const admin of adminsToRemove) {
+      await HotelAdminDetail.deleteOne({ hotelId, userId: admin.userId });
+      await User.findByIdAndDelete(admin.userId); // Optional: fully delete user
     }
 
-    // ✅ If hotel reactivated — enable them again
-    if (updateData.status === "Active") {
+    const adminIds = [];
+
+    // ✅ 3.2 Add or update current admins
+    for (const admin of adminDetails) {
+      let adminUser = await User.findOne({ email: admin.email });
+
+      // ➕ Create new admin if not found
+      if (!adminUser) {
+        const password = generateDefaultPassword();
+        adminUser = await User.create({
+          name: admin.name,
+          email: admin.email,
+          password,
+          userType: USER_TYPES.HotelAdmin,
+          hotelId: hotel._id,
+          isActive: hotel.status === "Active",
+        });
+
+        await sendEmail(
+          admin.email,
+          "Your Hotel Admin Account Details",
+          createHotelTemplate(admin.email, password)
+        );
+      } else {
+        // ✏️ Update name if changed
+        if (adminUser.name !== admin.name) {
+          adminUser.name = admin.name;
+          await adminUser.save();
+        }
+      }
+
+      adminIds.push(adminUser._id);
+
+      // ✅ Ensure mapping in HotelAdminDetail
+      await HotelAdminDetail.updateOne(
+        { hotelId: hotel._id, userId: adminUser._id },
+        { hotelId: hotel._id, userId: adminUser._id },
+        { upsert: true }
+      );
+    }
+
+    hotel.adminIds = adminIds;
+    await hotel.save();
+
+    // ✅ 4. Handle user status toggle if hotel deactivated/reactivated
+    if (hotel.status === "Inactive") {
+      await User.updateMany({ hotelId }, { $set: { isActive: false } });
+    } else if (hotel.status === "Active") {
       await User.updateMany({ hotelId }, { $set: { isActive: true } });
     }
 
+    // ✅ 5. Populate admin details for response
+    const updatedHotel = await Hotel.findById(hotelId).populate({
+      path: "adminIds",
+      select: "name email",
+      model: "User",
+    });
+
+    const adminDetailsResponse = updatedHotel.adminIds.map((u) => ({
+      _id: u._id,
+      name: u.name,
+      email: u.email,
+    }));
+
     return successResponse(
       res,
-      { message: "Hotel updated successfully", hotel },
+      {
+        message: "Hotel and admins updated successfully",
+        hotel: {
+          ...updatedHotel.toObject(),
+          adminDetails: adminDetailsResponse,
+        },
+      },
       200
     );
   } catch (error) {
     console.error("Error updating hotel:", error);
 
-    // ✅ Handle invalid enum or duplicate field errors gracefully
     if (error.name === "ValidationError") {
       return errorResponse(res, { message: error.message }, 400);
     }
@@ -225,9 +335,12 @@ export const getHotel = async (req, res) => {
           country: 1,
           website: 1,
           phone: 1,
+          address1: 1,
+          address2: 1,
+          zipcode: 1,
           allowSuperAdminAccess: 1,
           status: 1,
-          adminDetails: { _id: 1, email: 1 },
+          adminDetails: { _id: 1, email: 1, name: 1 },
         },
       },
       { $skip: skip },

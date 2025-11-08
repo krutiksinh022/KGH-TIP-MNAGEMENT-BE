@@ -13,22 +13,24 @@ const userSchema = new mongoose.Schema(
     isEmailVerified: { type: Boolean, default: false },
     refreshToken: { type: String, default: null },
 
-    // ✅ new fields
     hotelId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Hotel",
       default: null,
     },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
+    isActive: { type: Boolean, default: true },
     selectedHotelId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Hotel",
       default: null,
     },
     selectedHotelName: { type: String, default: null },
+
+    // ✅ Add these
+    profilePhoto: { type: String, default: null },
+    phone: { type: String, trim: true, default: null },
+    designation: { type: String, trim: true, default: null },
+    lastLoginAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

@@ -9,14 +9,17 @@ import "./config/connectDB.js";
 import cookieParser from "cookie-parser";
 dotenv.config();
 const app = express();
-app.use(cors());
+
 app.use(express.json());
 app.use(
   cors({
-    origin: "*", // Allow all origins
-    credentials: true, // Note: This will not work with "*" as origin. See explanation below.
+    origin: process.env.CLIENT_URL, // specific domain only
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization", "hotelid"],
   })
 );
+
 app.use(cookieParser());
 app.use("", router);
 

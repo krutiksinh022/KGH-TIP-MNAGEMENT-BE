@@ -11,12 +11,20 @@ dotenv.config();
 
 export const authorize = (userTypes = []) => {
   return async (req, res, next) => {
+    console.log("🔐 Authorization triggered", req.headers);
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith("Bearer ")) {
         return errorResponse(res, { message: "No token provided" }, 401);
       }
-
+      let hotelId = req.headers.hotelid; // Added line to get hotelId from request headers
+      if (!hotelId) {
+        return errorResponse(
+          res,
+          { message: "No hotel Selected, Please Select hotel" },
+          400
+        );
+      }
       const token = authHeader.split(" ")[1];
       const payload = jwt.verify(token, process.env.JWT_SECRET);
 
@@ -35,8 +43,25 @@ export const authorize = (userTypes = []) => {
 
       // ✅ Attach hotel info
       if (user.selectedHotelId) {
-        const hotel = await Hotel.findById(user.selectedHotelId, "hotelName");
-        if (hotel) req.hotelName = hotel.hotelName;
+        const hotel = await Hotel.findById(
+          user.selectedHotelId,
+          "hotelName allowedSuperAdmins"
+        );
+        if (hotel) {
+          req.hotelName = hotel.hotelName;
+
+          // ✅ Determine if SuperAdmin can view full data or masked data
+          if (user.userType === USER_TYPES.SuperAdmin) {
+            const hasAccess = hotel.allowSuperAdminAccess?.some(
+              (adminId) => adminId.toString() === user._id.toString()
+            );
+            req.isMasked = !hasAccess; // Masked if not allowed
+          } else {
+            req.isMasked = false;
+          }
+        }
+      } else {
+        req.isMasked = false;
       }
 
       req.user = user;

@@ -1,6 +1,6 @@
 export const userData = [
   {
-    name: "Admin",
+    name: "Super Admin",
     email: "superAdminKGH@yopmail.com",
     password: "Admin@123",
     userType: "Super Admin",

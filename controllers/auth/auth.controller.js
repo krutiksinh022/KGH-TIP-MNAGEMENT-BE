@@ -56,7 +56,7 @@ export const login = async (req, resp) => {
       return errorResponse(resp, { message: "Invalid credentials" }, 401);
     }
 
-    const accessToken = generateJwtToken(user, "15m");
+    const accessToken = generateJwtToken(user, "1hr");
     const refreshToken = generateRefreshToken(user);
 
     user.refreshToken = refreshToken;
@@ -74,6 +74,7 @@ export const login = async (req, resp) => {
       name: user.name,
       email: user.email,
       userType: user.userType,
+      profilePhoto: user.profilePhoto,
     };
 
     return resp.status(200).json({
@@ -109,8 +110,8 @@ export const refreshAccessToken = async (req, resp) => {
     resp.cookie("refreshToken", newRefreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      sameSite: "lax",
+      path: "/",
     });
 
     return resp.status(200).json({
